@@ -25,3 +25,7 @@ Always prefer NVIDIA GPU for video processing (encode/decode/render), not Intel 
 
 - `.manim/` and `.remotion/` hold actual project source (configs, scenes, components); `manim/` and `remotion/` hold their rendered output only.
 - Keep raw recordings in `raw/` untouched; edits go to `processed/`.
+
+## Scripts
+
+- `scripts/trim_to_short_video.sh <video1> <video2> <output>` — keep first N min of video1, concat video2 after it. NVENC/CUDA-accelerated (GPU decode+encode). Handles mismatched resolution/fps via scale+pad filter.
