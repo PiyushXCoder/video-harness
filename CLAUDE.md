@@ -9,7 +9,7 @@ Repo for producing YouTube videos: scripts + asset directories, one project per 
 - `remotion/` — rendered Remotion clips (output). Actual Remotion project source lives in `.remotion/`.
 - `raw/` — raw screen/camera recordings, unedited
 - `processed/` — video processed/edited from `raw/`
-- `screencasts/` — screen recordings
+- `screencasts/` — screen recordings, taken manually by user (no automated capture tooling)
 - `audio/` — audio tracks (voiceover, music, SFX)
 - `memes/` — meme assets
 - `plans/` — planning docs for videos/features
