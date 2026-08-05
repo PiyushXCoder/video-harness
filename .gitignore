@@ -2,3 +2,13 @@
 *.log
 node_modules/
 __pycache__/
+
+# raw/processed/manim/remotion outputs are large binaries — don't commit media
+raw/*
+processed/*
+manim/*
+remotion/*
+screencasts/*
+audio/*
+memes/*
+!*/.gitkeep
