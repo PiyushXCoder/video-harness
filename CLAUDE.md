@@ -29,3 +29,4 @@ Always prefer NVIDIA GPU for video processing (encode/decode/render), not Intel 
 ## Scripts
 
 - `scripts/trim_to_short_video.sh <video1> <video2> <output>` — keep first N min of video1, concat video2 after it. NVENC/CUDA-accelerated (GPU decode+encode). Handles mismatched resolution/fps via scale+pad filter.
+- `scripts/process_recording.py <input> [output]` — raw/ → processed/ pipeline. Cuts silent gaps >=1s (video+audio stay in sync), then cleans audio (highpass, compressor, loudnorm EBU R128) for loud/clear podcast-style sound. Video encoded with h264_nvenc (GPU).
