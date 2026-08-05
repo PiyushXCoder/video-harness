@@ -11,3 +11,6 @@
 - Added `manim-clip` skill (`.claude/skills/manim-clip/`) — write scene -> render -> publish to `manim/<clip>.mp4` workflow.
 - Scaffolded `.remotion/` project (React+TS, deps installed, 2048x1280 @ 30fps default composition size).
 - Added `remotion-clip` skill (`.claude/skills/remotion-clip/`) — write composition -> register in Root.tsx -> render -> publish to `remotion/<clip>.mp4` workflow. Verified end-to-end with a throwaway smoke-test composition.
+- Noted screencasts/ is captured manually, no tooling needed.
+- Added `scripts/find_audio.py` — search+download royalty-free music (Jamendo) / SFX (Freesound) via official APIs into `audio/`. Needs `JAMENDO_CLIENT_ID`/`FREESOUND_API_KEY` in gitignored `.env`.
+- Added `find-audio` skill (`.claude/skills/find-audio/`) — picks the right source/query from a mood/genre/duration requirement, searches, picks best match, downloads. Guides first-time API key setup.

@@ -2,6 +2,7 @@
 *.log
 node_modules/
 __pycache__/
+.env
 
 # raw/processed/manim/remotion outputs are large binaries — don't commit media
 raw/*

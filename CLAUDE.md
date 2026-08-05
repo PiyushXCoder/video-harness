@@ -30,8 +30,10 @@ Always prefer NVIDIA GPU for video processing (encode/decode/render), not Intel 
 
 - `scripts/trim_to_short_video.sh <video1> <video2> <output>` — keep first N min of video1, concat video2 after it. NVENC/CUDA-accelerated (GPU decode+encode). Handles mismatched resolution/fps via scale+pad filter.
 - `scripts/process_recording.py <input> [output]` — raw/ → processed/ pipeline. Cuts silent gaps >=1s (video+audio stay in sync), then cleans audio (highpass, compressor, loudnorm EBU R128) for loud/clear podcast-style sound. Video encoded with h264_nvenc (GPU).
+- `scripts/find_audio.py {search|download} --type {music|sfx} --query "..."` — royalty-free audio via Jamendo (music) / Freesound (sfx) official APIs. Needs `JAMENDO_CLIENT_ID` / `FREESOUND_API_KEY` in a gitignored `.env` at repo root. Downloads land in `audio/`.
 
 ## Skills
 
 - `manim-clip` (`.claude/skills/manim-clip/`) — writes a Manim scene to `.manim/scenes/<clip_name>.py`, renders it (2048x1280 @ 30fps, set in `.manim/manim.cfg`), publishes the result to `manim/<clip_name>.mp4`. Manim's render is CPU-bound (Cairo) — the GPU-first rule above applies to the ffmpeg scripts, not to Manim itself.
 - `remotion-clip` (`.claude/skills/remotion-clip/`) — writes a Remotion composition to `.remotion/src/compositions/<Name>.tsx`, registers it in `.remotion/src/Root.tsx`, renders it (2048x1280 @ 30fps default), publishes the result to `remotion/<clip_name>.mp4`. Render encode is CPU x264 (Remotion's bundled ffmpeg), not NVENC.
+- `find-audio` (`.claude/skills/find-audio/`) — searches Jamendo/Freesound for royalty-free music/SFX matching a mood/genre/duration requirement, downloads the chosen result into `audio/`. Guides first-time API key setup.
