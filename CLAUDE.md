@@ -25,6 +25,7 @@ Always prefer NVIDIA GPU for video processing (encode/decode/render), not Intel 
 
 - `.manim/` and `.remotion/` hold actual project source (configs, scenes, components); `manim/` and `remotion/` hold their rendered output only.
 - Keep raw recordings in `raw/` untouched; edits go to `processed/`.
+- Final assembly/editing (stitching clips, timeline, cuts, music mixing/ducking, captions) is done manually in Kdenlive — not automated here. This repo's scripts/skills only prep individual assets (`processed/`, `manim/`, `remotion/`, `audio/`) that get imported into the Kdenlive project.
 
 ## Scripts
 
