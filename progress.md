@@ -7,3 +7,5 @@
 - CLAUDE.md: always prefer NVIDIA GPU for video processing (nvenc/cuda) over Intel iGPU/CPU.
 - Added `scripts/trim_to_short_video.sh` — trim video1 to first N min, concat video2, NVENC/CUDA accelerated.
 - Added `scripts/process_recording.py` — raw/ -> processed/ pipeline: cuts silent gaps >=1s (video+audio sync), cleans audio (highpass, compressor, loudnorm) for podcast-style loud/clear sound, h264_nvenc encode. Tested against synthetic clip.
+- Scaffolded `.manim/` project (manim.cfg: 2048x1280 @ 30fps, matches recorder aspect ratio) + `.manim/scenes/`.
+- Added `manim-clip` skill (`.claude/skills/manim-clip/`) — write scene -> render -> publish to `manim/<clip>.mp4` workflow.

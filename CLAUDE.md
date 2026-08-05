@@ -30,3 +30,7 @@ Always prefer NVIDIA GPU for video processing (encode/decode/render), not Intel 
 
 - `scripts/trim_to_short_video.sh <video1> <video2> <output>` — keep first N min of video1, concat video2 after it. NVENC/CUDA-accelerated (GPU decode+encode). Handles mismatched resolution/fps via scale+pad filter.
 - `scripts/process_recording.py <input> [output]` — raw/ → processed/ pipeline. Cuts silent gaps >=1s (video+audio stay in sync), then cleans audio (highpass, compressor, loudnorm EBU R128) for loud/clear podcast-style sound. Video encoded with h264_nvenc (GPU).
+
+## Skills
+
+- `manim-clip` (`.claude/skills/manim-clip/`) — writes a Manim scene to `.manim/scenes/<clip_name>.py`, renders it (2048x1280 @ 30fps, set in `.manim/manim.cfg`), publishes the result to `manim/<clip_name>.mp4`. Manim's render is CPU-bound (Cairo) — the GPU-first rule above applies to the ffmpeg scripts, not to Manim itself.

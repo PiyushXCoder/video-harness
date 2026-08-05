@@ -12,3 +12,6 @@ screencasts/*
 audio/*
 memes/*
 !*/.gitkeep
+
+# Manim's own render cache/output — regenerable, large
+.manim/media/
