@@ -9,3 +9,5 @@
 - Added `scripts/process_recording.py` — raw/ -> processed/ pipeline: cuts silent gaps >=1s (video+audio sync), cleans audio (highpass, compressor, loudnorm) for podcast-style loud/clear sound, h264_nvenc encode. Tested against synthetic clip.
 - Scaffolded `.manim/` project (manim.cfg: 2048x1280 @ 30fps, matches recorder aspect ratio) + `.manim/scenes/`.
 - Added `manim-clip` skill (`.claude/skills/manim-clip/`) — write scene -> render -> publish to `manim/<clip>.mp4` workflow.
+- Scaffolded `.remotion/` project (React+TS, deps installed, 2048x1280 @ 30fps default composition size).
+- Added `remotion-clip` skill (`.claude/skills/remotion-clip/`) — write composition -> register in Root.tsx -> render -> publish to `remotion/<clip>.mp4` workflow. Verified end-to-end with a throwaway smoke-test composition.

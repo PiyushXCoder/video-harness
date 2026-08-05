@@ -34,3 +34,4 @@ Always prefer NVIDIA GPU for video processing (encode/decode/render), not Intel 
 ## Skills
 
 - `manim-clip` (`.claude/skills/manim-clip/`) — writes a Manim scene to `.manim/scenes/<clip_name>.py`, renders it (2048x1280 @ 30fps, set in `.manim/manim.cfg`), publishes the result to `manim/<clip_name>.mp4`. Manim's render is CPU-bound (Cairo) — the GPU-first rule above applies to the ffmpeg scripts, not to Manim itself.
+- `remotion-clip` (`.claude/skills/remotion-clip/`) — writes a Remotion composition to `.remotion/src/compositions/<Name>.tsx`, registers it in `.remotion/src/Root.tsx`, renders it (2048x1280 @ 30fps default), publishes the result to `remotion/<clip_name>.mp4`. Render encode is CPU x264 (Remotion's bundled ffmpeg), not NVENC.

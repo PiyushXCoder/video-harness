@@ -15,3 +15,6 @@ memes/*
 
 # Manim's own render cache/output — regenerable, large
 .manim/media/
+
+# Remotion's own render output — regenerable, large (node_modules/ rule above covers deps)
+.remotion/out/
