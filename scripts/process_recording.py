@@ -3,7 +3,7 @@
 process_recording.py
 
 Turns a raw recording (raw/) into a podcast-ready clip (processed/):
-  1. Detects silent gaps >= GAP_THRESHOLD seconds and cuts them out
+  1. Detects silent gaps >= GAP_THRESHOLD seconds and shortens them
      (video + audio stay in sync — both streams are trimmed with the
      same keep-segments).
   2. Cleans up the remaining audio: high-pass filter (rumble/hum),
@@ -12,14 +12,26 @@ Turns a raw recording (raw/) into a podcast-ready clip (processed/):
   3. Encodes video with NVIDIA NVENC (h264_nvenc), per project
      convention of preferring the GPU for video processing.
 
-Usage:
-  process_recording.py <input> [output] [--gap SECONDS] [--noise DB] [--pad SECONDS]
+Gaps are CAPPED, not flattened: a silence shorter than --gap is left entirely
+alone (those are natural speech beats), and a longer one is shortened to
+--max-gap rather than to a fixed fraction of a second. The old behaviour
+collapsed every gap to 2x--pad, which stripped the rhythm out of the speech.
 
-Defaults:
-  output       processed/<input-basename> (same extension)
-  --gap        1.0   (seconds of silence to treat as a cuttable gap)
-  --noise      -30    (dBFS threshold below which audio counts as silence)
-  --pad        0.15  (seconds kept on each side of a cut, so words aren't clipped)
+Leading and trailing dead air are trimmed separately (--head / --tail) rather
+than through the gap logic, which otherwise leaves a fraction-of-a-second stub
+of silence flashing at the start or end of the clip.
+
+Usage:
+  process_recording.py <input> [output] [options]
+
+Options:
+  --gap SECONDS       mid-speech silence long enough to shorten  [1.0]
+  --noise DB          dBFS threshold below which audio counts as silence  [-30]
+  --max-gap SECONDS   what a shortened gap becomes  [0.7]
+  --head SECONDS      silence kept before the first word  [0.15]
+  --tail SECONDS      silence kept after the last word  [0.35]
+  --min-seg SECONDS   drop kept segments shorter than this (sliver guard)  [0.35]
+  --dry-run           print the cut plan and exit without encoding
 
 Requires: ffmpeg, ffprobe (both on PATH).
 """
@@ -29,6 +41,15 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+# How close to 0 / duration a silence must start / end to count as
+# leading / trailing dead air rather than a mid-speech gap.
+EDGE_EPS = 0.4
+
+# Silences are always detected at this resolution, independent of --gap, so
+# leading/trailing dead air gets trimmed even when it is shorter than the
+# mid-speech gap threshold.
+EDGE_GAP = 0.25
 
 
 def run(cmd):
@@ -51,34 +72,71 @@ def has_video_stream(path):
     return bool(out.stdout.strip())
 
 
-def detect_silences(path, noise_db, gap_secs):
+def detect_silences(path, noise_db, duration):
     out = run([
         "ffmpeg", "-i", str(path),
-        "-af", f"silencedetect=noise={noise_db}dB:d={gap_secs}",
+        "-af", f"silencedetect=noise={noise_db}dB:d={EDGE_GAP}",
         "-f", "null", "-",
     ])
     log = out.stderr
     starts = [float(m) for m in re.findall(r"silence_start:\s*([-\d.]+)", log)]
     ends = [float(m) for m in re.findall(r"silence_end:\s*([-\d.]+)", log)]
-    # ffmpeg may report a trailing silence_start with no matching silence_end
-    # (silence runs to EOF) — drop it, nothing to cut mid-stream for that case.
-    return list(zip(starts, ends[: len(starts)]))
+    # A trailing silence_start with no matching silence_end means the silence
+    # runs to EOF — close it at the duration so --tail can trim it, instead of
+    # dropping it and leaving the dead air in.
+    return [(s, ends[i] if i < len(ends) else duration) for i, s in enumerate(starts)]
 
 
-def keep_segments(duration, silences, pad):
+def keep_segments(duration, silences, gap, max_gap, head, tail, min_seg):
+    """Segments of the source to keep, in order.
+
+    A mid-speech silence shorter than `gap` is left completely alone — those are
+    natural speech beats. A longer one is shortened to `max_gap`, removing half
+    from each side so the pause stays centred between the two phrases.
+
+    Leading/trailing silence is trimmed to head/tail regardless of length, since
+    dead air at a clip boundary is never a beat.
+
+    Segments shorter than min_seg are dropped so no sliver of a frame survives.
+    """
     segments = []
     cursor = 0.0
+
     for start, end in silences:
+        leading = start <= EDGE_EPS
+        trailing = end >= duration - EDGE_EPS
+
+        if leading and trailing:
+            continue  # entire file is silent; caller errors out on empty result
+
+        if leading:
+            # Start just before the first word instead of at t=0.
+            cursor = max(0.0, end - head)
+            continue
+
+        if trailing:
+            stop = min(duration, start + tail)
+            if stop > cursor:
+                segments.append((cursor, stop))
+            cursor = duration
+            continue
+
+        length = end - start
+        if length < gap:
+            continue  # natural speech beat, leave it alone
+        pad = min(length, max_gap) / 2.0
         cut_start = start + pad
         cut_end = end - pad
         if cut_end <= cut_start:
-            continue  # padding ate the whole gap, nothing to cut
+            continue  # nothing left to remove
         if cut_start > cursor:
             segments.append((cursor, cut_start))
         cursor = max(cursor, cut_end)
+
     if cursor < duration:
         segments.append((cursor, duration))
-    return [(s, e) for s, e in segments if e - s > 0.01]
+
+    return [(s, e) for s, e in segments if e - s >= min_seg]
 
 
 def build_select_expr(segments):
@@ -89,9 +147,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("input")
     ap.add_argument("output", nargs="?")
-    ap.add_argument("--gap", type=float, default=1.0, help="silence duration (s) that counts as a cuttable gap")
+    ap.add_argument("--gap", type=float, default=1.0, help="mid-speech silence (s) long enough to shorten; shorter ones are left alone")
     ap.add_argument("--noise", type=float, default=-30.0, help="silence threshold in dB")
-    ap.add_argument("--pad", type=float, default=0.15, help="seconds kept on each side of a cut")
+    ap.add_argument("--max-gap", type=float, default=0.7, help="what a shortened gap becomes (s)")
+    ap.add_argument("--head", type=float, default=0.15, help="silence kept before the first word (s)")
+    ap.add_argument("--tail", type=float, default=0.35, help="silence kept after the last word (s)")
+    ap.add_argument("--min-seg", type=float, default=0.35, help="drop kept segments shorter than this (s)")
+    ap.add_argument("--dry-run", action="store_true", help="print the cut plan and exit without encoding")
     args = ap.parse_args()
 
     src = Path(args.input)
@@ -103,18 +165,26 @@ def main():
     else:
         repo_root = Path(__file__).resolve().parent.parent
         dst = repo_root / "processed" / src.name
-    dst.parent.mkdir(parents=True, exist_ok=True)
 
     duration = ffprobe_duration(src)
-    silences = detect_silences(src, args.noise, args.gap)
-    segments = keep_segments(duration, silences, args.pad)
+    silences = detect_silences(src, args.noise, duration)
+    segments = keep_segments(duration, silences, args.gap, args.max_gap,
+                             args.head, args.tail, args.min_seg)
 
     if not segments:
         sys.exit("Error: silence detection removed the entire recording — check --noise/--gap.")
 
     kept = sum(e - s for s, e in segments)
-    print(f"Duration: {duration:.1f}s, cutting {len(silences)} gap(s) >= {args.gap}s, keeping {kept:.1f}s")
+    print(f"Duration: {duration:.1f}s -> {kept:.1f}s "
+          f"(gaps >= {args.gap}s shortened to {args.max_gap}s, {len(segments)} segment(s) kept)")
 
+    if args.dry_run:
+        for i, (s, e) in enumerate(segments):
+            gap_before = f"  gap {s - segments[i - 1][1]:.2f}s before" if i else ""
+            print(f"  keep {s:7.3f} -> {e:7.3f}  ({e - s:5.2f}s){gap_before}")
+        return
+
+    dst.parent.mkdir(parents=True, exist_ok=True)
     expr = build_select_expr(segments)
     video = has_video_stream(src)
 
