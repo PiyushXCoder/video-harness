@@ -1,49 +1,61 @@
 ---
 name: find-audio
-description: Find and download royalty-free background music or sound effects into audio/, based on a mood/genre/duration requirement. Use when the user asks to find, get, or download music, a track, a sound effect, or SFX for a video.
+description: Find, import and level a single music track or sound effect into audio/, free-licence only. Use when the user asks for a track, background music, a sound effect, or SFX for a specific moment.
 ---
 
-# Find & download royalty-free audio
+# Find & import audio
 
-Uses two official CC-licensed APIs via `scripts/find_audio.py`:
-- **Jamendo** — music
-- **Freesound** — sound effects
+`scripts/find_audio.py`. Output goes to `audio/` (gitignored). For planning a whole video's music and SFX, use `audio-pass` instead — this skill sources **one** asset.
 
-## First-time setup (API keys)
+## The hard rule
 
-Check for `.env` at the repo root with `JAMENDO_CLIENT_ID` and/or `FREESOUND_API_KEY`. If missing (the script will error out naming exactly which key is missing and where to get it), walk the user through it:
+**Nothing that costs money.** No subscriptions, no per-track purchases — not Epidemic Sound, Artlist, Musicbed, PremiumBeat, Soundstripe, or Uppbeat's paid tier. If the answer to "can I use this in a monetised video" is "buy a licence", it's out.
 
-- **Jamendo**: https://devportal.jamendo.com/ → create an app → copy the "Client ID" (instant, free).
-- **Freesound**: https://freesound.org/apiv2/apply/ → register an app → copy the API key (instant, free).
+The script enforces this with an **allowlist**: only **CC0 / public domain** and plain **CC-BY** pass. Rejected — NonCommercial (a monetised video *is* commercial use), NoDerivatives (trimming/fading/ducking is a derivative), ShareAlike (can oblige licensing the finished video alike), Sampling+, and anything unrecognised or empty. Do not weaken this, and do not reach for `--allow-nc/--allow-nd/--allow-sa` to make a thin search return more hits; those are for non-monetised work only and cannot whitelist an unknown licence.
 
-Add to `.env` (repo root, gitignored — never commit this file):
+## 1. import — no API key, preferred
+
+```bash
+python3 scripts/find_audio.py import ~/Downloads/track.mp3 --role music \
+    --name bed --title "Track Name" --artist "Artist" \
+    --license "YouTube Audio Library" --source-name "YouTube Audio Library"
 ```
-JAMENDO_CLIENT_ID=...
-FREESOUND_API_KEY=...
+
+Point the user at the **YouTube Audio Library** first (studio.youtube.com → Audio Library): free, no key, cleared for YouTube specifically so it will not draw a Content ID claim, and most of it needs no attribution. **Pixabay Audio** and **Incompetech** (CC-BY) are the other good free sources.
+
+## 2. search / download — Freesound / Jamendo
+
+```bash
+export FREESOUND_API_KEY=...        # or put it in .env at the repo root
+python3 scripts/find_audio.py search --type sfx --query "success chime"
+python3 scripts/find_audio.py download --type sfx --id <id> --name confirm
 ```
 
-## Workflow
+- **Freesound** (`--type sfx`) — free key at https://freesound.org/apiv2/apply/. Good for effects.
+- **Jamendo** (`--type music`) — needs care. Its catalogue is mostly NonCommercial and it sells commercial licences separately (Jamendo Licensing / Pro). The filter only passes genuinely CC-BY tracks, which the CC grant makes free commercially, but the docs are ambiguous about monetised use of the CC catalogue. Prefer the Audio Library or Pixabay where there's no ambiguity.
 
-1. **Figure out the requirement** from the user's ask: type (music vs sfx), search terms (mood/genre/instrument for music; sound description for sfx), and a duration range if it matters (e.g. background music for a 90s clip needs ≥90s).
+Keys are read from the environment **or** `.env`, environment winning. `.env` is gitignored, so it does not travel between git worktrees — exporting is more reliable in this repo.
 
-2. **Search:**
-   ```bash
-   python3 scripts/find_audio.py search --type music --query "upbeat corporate" --duration 60-180
-   python3 scripts/find_audio.py search --type sfx --query "keyboard click"
-   ```
-   Prints a JSON array of candidates: `id`, `name`, `artist`, `duration_s`, `license`, `url`.
+Pass `--duration MIN-MAX` when length matters (a bed must outlast the video). `search` prints JSON including `license` and a plain-English `license_note`; read it and pick deliberately rather than taking the first hit. Offer the user 2–3 candidates when the choice is taste.
 
-3. **Pick the best match** yourself from the JSON (closest to the requested mood/duration/name) — don't just take the first result blindly. Mention the top 2-3 candidates to the user if the choice is ambiguous.
+## Levels
 
-4. **Download** the chosen one — pass the *same* `--query`/`--duration` used in search plus the chosen `--id` (the script re-searches to relocate it, so args must match):
-   ```bash
-   python3 scripts/find_audio.py download --type music --id 12345 --query "upbeat corporate" --duration 60-180 --name intro-music
-   ```
-   Saves to `audio/<name>.mp3` (or a slugified version of the track name if `--name` omitted).
+Both paths normalise on the way in, so the Remotion mix starts somewhere sane:
 
-5. **Report** what was downloaded, its license, and the destination path. Note the license terms if attribution is required (Jamendo/Freesound results vary by track — check the `license` field).
+- `--role music` → **-20 LUFS** integrated. The narration is mastered to -16 LUFS by `process_recording.py` (measured -16.2), so a bed at -20 sits ~4 LU under it.
+- `--role sfx` → **-6 dBFS** peak, leading/trailing silence trimmed, so effects land at a consistent level.
+
+Say explicitly that this is a starting point, not a mix: the bed still wants ducking 6–9 dB under speech, driven from the `.srt` cue ranges in the composition.
+
+## Attribution
+
+Every import and download appends to `audio/CREDITS.md` — file, role, source, title, artist, licence, page. CC-BY **requires** crediting in the video description; CC0 doesn't. Tell the user that file exists and is what the description gets built from.
+
+Freesound/Jamendo audio can still attract a YouTube Content ID claim even when correctly licensed; `CREDITS.md` is the evidence for disputing one. The Audio Library sidesteps it.
 
 ## Notes
 
-- Freesound downloads use the `preview-hq-mp3` URL — good quality, no OAuth needed. The original lossless file requires Freesound OAuth2, not implemented here.
-- `audio/*` is gitignored (per project convention) — downloaded files stay local, not committed.
+- SFX come from Freesound's `preview-hq-mp3` (no OAuth needed). The lossless original needs Freesound OAuth2, not implemented.
+- Jamendo tracks without `audiodownload_allowed` are skipped — a streaming URL is not a licence to reuse the audio.
+- A source quieter than the silence-trim threshold would otherwise be consumed entirely; the script detects that and falls back to untrimmed with a warning.
+- `audio/*` is gitignored — downloads stay local.
