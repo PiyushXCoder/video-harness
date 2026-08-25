@@ -19,6 +19,12 @@ Config.setHardwareAcceleration('if-possible');
 // concurrency will swap and end up slower than a lower number.
 Config.setConcurrency(6);
 
-// Quality: 18 is visually transparent for screen content; NVENC ignores CRF and
-// uses its own rate control, so this matters mainly for a software fallback.
-Config.setCrf(18);
+// NO Config.setCrf() here: NVENC has its own rate control and Remotion
+// silently falls back to software encoding if a CRF is set alongside
+// hardware acceleration ("crf option is not supported with hardware
+// acceleration"). This bit us on the very first render of this project --
+// the log line is easy to miss among hundreds of "Encoded N/M" lines. If a
+// render ever needs to run on CPU (hardware unavailable), set CRF via the
+// CLI for that run instead: --crf=18.
+
+Config.setPublicDir('..');

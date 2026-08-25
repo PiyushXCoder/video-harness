@@ -5,7 +5,7 @@ description: Create a Manim animation clip for this video project — designing 
 
 # Manim clip creation
 
-Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips are published to `manim/` at the repo root (see `CLAUDE.md`). Resolution 2048x1280 @ 30fps and the Latte background come from `.manim/manim.cfg` — never repeat them on the command line.
+Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips are published to `manim/` at the repo root (see `CLAUDE.md`). Resolution 2048x1280 @ 30fps and the Mocha background come from `.manim/manim.cfg` — never repeat them on the command line.
 
 **Read `docs/manim-layout-guidelines.md` before designing a non-trivial scene.** It is 30 rules on layout engineering; the ones that bite hardest here are S2/S28 (express position as relationships, not coordinates), S9 (one spacing scale), S16 (dim context so the new thing dominates), and S22 (validate before shipping).
 
@@ -19,12 +19,12 @@ Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips 
 
    ```python
    from manim import *
-   from catppuccin import (LATTE, LatteScene, audit_layout, component, connect,
+   from catppuccin import (MOCHA, MochaScene, audit_layout, component, connect,
                            dim, endpoints, place_label_clear, row, stack,
                            CONTENT_REGION, GAP_LG, GAP_XL)
 
 
-   class <ClassName>(LatteScene):
+   class <ClassName>(MochaScene):
        def construct(self):
            title = self.title("what this beat says")
            boxes = {k: component(...) for k in SPEC}
@@ -39,7 +39,7 @@ Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips 
 
    | helper | use |
    |---|---|
-   | `LATTE[...]` | every colour. Never `BLUE`/`RED` — Manim's defaults clash with Latte |
+   | `MOCHA[...]` | every colour. Never `BLUE`/`RED` — Manim's defaults clash with Mocha |
    | `GAP_XS/SM/MD/LG/XL` | every gap. A new literal needs a reason (S9) |
    | `row()` / `stack()` | siblings side by side / top to bottom (S5) |
    | `Region`, `CONTENT_REGION.fit()` | assign objects to a region; scale-to-fit only if needed (S3/S17) |
@@ -82,10 +82,34 @@ For a diagram revealed across several narration beats, build the FULL layout onc
 
 Give each stage its own narrative-beat method rather than one long `construct()` (S25), and dim prior stages' components to `context`, ghosting anything the story has moved past (S16/S14).
 
+## Split a clip rather than freezing it
+
+Size the clip to the narration beat it explains. If the narration covers a
+diagram's *problem* and its *fix* tens of seconds apart, that is **two clips**,
+not one clip frozen across the gap.
+
+A single clip held over a long window is bad twice over: it looks dead, and
+because nothing may be drawn on top of a cutaway, it blocks every gif, emoji,
+stamp and punch line for the whole hold. One 1.7 s clip was being stretched to
+25 s, and a 6.3 s one to 47 s.
+
+When splitting, put the shared geometry in a base class so the two clips place
+their objects identically — the diagram must not jump on the cut (S7/S19). Have
+part 2 open in part 1's **end** state rather than rebuilding from scratch, so the
+cut reads as the same diagram continuing. See `EndgameProblem` / `EndgameSolution`
+sharing `_Endgame` in `.manim/scenes/endgame_mode.py`.
+
+## Audit every mobject you create
+
+`audit_layout()` only checks what you hand it. A caption placed under a box near
+the frame edge overflowed and shipped reading `sh set drops the repeats` — the
+note was never passed to the audit. Pass **everything** visible, and run
+`clamp_to_frame()` on anything positioned relative to another object.
+
 ## Notes
 
 - Manim's Cairo renderer is CPU-bound — the project's "prefer NVIDIA GPU" rule applies to the ffmpeg scripts, not to Manim.
-- `.manim/media/` is gitignored (regenerable). `.manim/scenes/*.py` and `.manim/manim.cfg` are tracked.
+- `.manim/media/` is gitignored (regenerable). `.manim/manim.cfg` and the shared engine `.manim/scenes/catppuccin.py` are template code; the per-episode scene files are this video's content, so don't fold them into a template commit.
 - Re-running a render reuses Manim's cache for unchanged animations.
 - Naming a spacing/style constant after a Manim export shadows it. A constant called `NORMAL` silently turned `weight=NORMAL` into `weight=0.42`; hence the `GAP_` prefix.
 - `DashedVMobject` keeps its dashes as submobjects and has no points itself, so `get_start()`/`get_end()` throw on a dashed arrow. `link()` records `layout_start`/`layout_end`; read them via `endpoints(arrow)`.

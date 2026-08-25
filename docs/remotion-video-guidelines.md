@@ -1,7 +1,7 @@
 # Final video assembly & animation guidelines (Remotion)
 
 How the finished video is built. Remotion is the editor — there is no manual NLE
-step. Everything here is specific to this project: 30 fps, Catppuccin Latte,
+step. Everything here is specific to this project: 30 fps, Catppuccin Mocha,
 Fira Code, narration mastered to −16 LUFS.
 
 Read `docs/manim-layout-guidelines.md` too. Its rules on relationships-over-
@@ -154,18 +154,97 @@ const opacity = interpolate(frame, [0, 8], [0, 1], {
 - Entrance 6 frames (scale 0.85→1 + fade), exit 6 frames. Hold 1–2.5 s. A meme
   that outstays the joke kills the joke.
 - Cap it at **one overlay at a time**. Two competing overlays means neither reads.
+- **A gif is used at most ONCE per video.** Reuse stops reading as a joke and
+  starts reading as a stock-footage budget. `check_no_repeated_gifs()` fails the
+  build on a repeat — source a new one rather than working around it. Emoji may
+  repeat, but only where the repeat means something (a ✅ on each verify beat is
+  fine; a 🚀 sprayed at random is not).
+- **The gif has to match the beat, not just the topic.** An energetic bouncing
+  dog on "the blocks are not being downloaded as good as it could" is wrong; a
+  "waiting" gif is right. Pick from the *emotion* of the line.
+- **Render the gif composited into the real frame and LOOK at it before
+  trusting it.** A GIPHY title is not evidence. Titles reading exactly `robot
+  GIF` and `Happy Robot GIF` both turned out to be Bender from Futurama; others
+  that sounded generic carried a network watermark, burned-in captions, an
+  identifiable soap actor, or a real private individual at a branded event. Drop
+  anything with studio/brand IP or an identifiable private person.
 
 ---
 
-## 7. Subtitles
+## 7. On-screen text: three layers, one job each
 
-Do **not** burn full captions in. YouTube's own captions are searchable,
-translatable and toggleable — upload the `.srt` from `processed/` instead.
+Do **not** burn full captions in for the whole video. YouTube's own captions are
+searchable, translatable and toggleable — upload the `.srt` from `processed/`.
+A subtitle track running the full runtime also just looks like a subtitle track.
 
-Do use **selective on-screen text** for things the ear mishears: component names
-(`request_manager`), constants (`MAX_PEERS = 50`), and the domain terms whisper
-itself got wrong (`bencode`, `Tokio`). Fira Code, `text` colour on a `mantle`
-pill, 8-frame fade, out before the next beat.
+Use exactly three layers, each with a distinct job, so nothing says the same
+thing twice:
+
+| layer | job | position |
+|---|---|---|
+| **captions** (`captions=True`) | every spoken word, from the `.srt` | bottom band |
+| **punchTexts** | selected lines worth emphasising | lower third |
+| **stamps** | short CONCEPT labels (`NO.` / `TRACKER` / `EVENT LOOP`) — the one layer that is *not* a quote | top banner |
+
+- **Captions only where a subtitle look is wanted** — normally just the opening
+  beat. Elsewhere `punchTexts` carries the text.
+- Where both exist on a segment, the caption is suppressed for the punch's
+  window (`CaptionsGate`) so the sentence is never printed twice at once.
+- **Never put text at frame centre.** That is exactly where a talking-head's
+  face sits. Captions go in the bottom band, punch lines in the lower third,
+  stamps in a top banner, emoji upper-right. A `kineticText` layer that popped
+  the narrator's own words dead-centre had to be deleted for this reason.
+- Selective on-screen text still earns its place for things the ear mishears:
+  component names (`request_manager`), constants (`MAX_PEERS = 50`), and terms
+  whisper got wrong (`bencode`, `Tokio`).
+
+### Sync: nothing appears before it is spoken
+
+The `.srt` is the authority. **A cue's start time is not when its third word
+lands** — whisper cues are multi-word chunks (`-ml 42`), so text keyed to a cue
+start routinely leads its own words by 1–3 s and spoils the line.
+
+`check_not_early()` computes each word's real onset (interpolated within its
+cue) and **fails the build** if any text leads its words by more than
+`LEAD_TOLERANCE_SEC`. Let it tell you the correct time rather than eyeballing —
+it has caught this a dozen times.
+
+---
+
+## 7a. Nothing may be drawn over a cutaway
+
+A cutaway **is** the content — a diagram to read, or a screencast showing real
+output. Decoration on top hides the thing the viewer is meant to look at.
+
+`CutawaySafeSequence` enforces this for every decorative layer, and the rule is
+**any** cutaway, not just `manim/`: an emoji burst once sat dead-centre over
+`digest == piece.hash` in a code clip, and a meme inset landed squarely on a
+`sha256sum` digest line in a screencast. Both read as "the text is cut off".
+
+Consequences to plan around:
+
+- A layer scheduled *inside* a cutaway window renders as **nothing**. Check for
+  it; three overlays were silently invisible this way.
+- Don't hold a short Manim clip frozen across a long window just to fill time.
+  A 1.7 s clip stretched to 25 s both looks dead and blocks every overlay for
+  those 25 s. Shrink the window to the clip's real length plus a beat, and let
+  the talking head carry the rest.
+- Captions are the one exception: allowed over a *screencast* (they sit in the
+  lower band, clear of terminal output), never over a Manim diagram, which
+  carries its own captions.
+
+---
+
+## 7b. Density: no dead air
+
+Outside a cutaway, no stretch should be bare — there should always be text, a
+gif, an emoji, a stamp or an overlay on screen. `report_coverage()` walks every
+frame and reports any gap longer than `MAX_BARE_SEC`, so density is measured
+rather than assumed.
+
+Fill a gap with a punch line quoting what is actually being said at that moment
+(the transcript is right there), or an emoji on the beat. Do not fill it by
+turning captions back on for the whole video.
 
 ---
 

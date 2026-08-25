@@ -1,7 +1,7 @@
-"""Catppuccin Latte palette + shared scene furniture for this project's clips.
+"""Catppuccin Mocha palette + shared scene furniture for this project's clips.
 
 Palette values are the official ones from catppuccin/palette (palette.json),
-cross-checked against https://catppuccin.com/palette/. Latte is the LIGHT
+cross-checked against https://catppuccin.com/palette/. Mocha is the DARK
 flavour — `base` is the background, `text` is the foreground.
 
 Semantic roles follow the Catppuccin style guide:
@@ -17,33 +17,33 @@ import numpy as np
 
 from manim import *
 
-LATTE = {
-    "rosewater": "#dc8a78",
-    "flamingo": "#dd7878",
-    "pink": "#ea76cb",
-    "mauve": "#8839ef",
-    "red": "#d20f39",
-    "maroon": "#e64553",
-    "peach": "#fe640b",
-    "yellow": "#df8e1d",
-    "green": "#40a02b",
-    "teal": "#179299",
-    "sky": "#04a5e5",
-    "sapphire": "#209fb5",
-    "blue": "#1e66f5",
-    "lavender": "#7287fd",
-    "text": "#4c4f69",
-    "subtext1": "#5c5f77",
-    "subtext0": "#6c6f85",
-    "overlay2": "#7c7f93",
-    "overlay1": "#8c8fa1",
-    "overlay0": "#9ca0b0",
-    "surface2": "#acb0be",
-    "surface1": "#bcc0cc",
-    "surface0": "#ccd0da",
-    "base": "#eff1f5",
-    "mantle": "#e6e9ef",
-    "crust": "#dce0e8",
+MOCHA = {
+    "rosewater": "#f5e0dc",
+    "flamingo": "#f2cdcd",
+    "pink": "#f5c2e7",
+    "mauve": "#cba6f7",
+    "red": "#f38ba8",
+    "maroon": "#eba0ac",
+    "peach": "#fab387",
+    "yellow": "#f9e2af",
+    "green": "#a6e3a1",
+    "teal": "#94e2d5",
+    "sky": "#89dceb",
+    "sapphire": "#74c7ec",
+    "blue": "#89b4fa",
+    "lavender": "#b4befe",
+    "text": "#cdd6f4",
+    "subtext1": "#bac2de",
+    "subtext0": "#a6adc8",
+    "overlay2": "#9399b2",
+    "overlay1": "#7f849c",
+    "overlay0": "#6c7086",
+    "surface2": "#585b70",
+    "surface1": "#45475a",
+    "surface0": "#313244",
+    "base": "#1e1e2e",
+    "mantle": "#181825",
+    "crust": "#11111b",
 }
 
 FONT = "Fira Code"
@@ -157,7 +157,7 @@ def stack(*mobs, gap=GAP_XL):
 
 def attach_label(parent, txt, side=DOWN, gap=GAP_SM, size=19, color=None):
     """Make a label a CHILD of its object so it can never drift (S11)."""
-    lbl = Text(txt, font=FONT, font_size=size, color=color or LATTE["subtext0"])
+    lbl = Text(txt, font=FONT, font_size=size, color=color or MOCHA["subtext0"])
     lbl.next_to(parent, side, buff=gap)
     return VGroup(parent, lbl)
 
@@ -250,7 +250,7 @@ def connect(a, b, color=None, both=False, dashed=False, follow=False):
     follow=True keeps the arrow glued to its endpoints via always_redraw, for
     scenes where objects move. These scenes are statically laid out, so the
     default is off -- always_redraw rebuilds the mobject every frame, which
-    interferes with FadeIn/GrowArrow on it.
+    interferes with Create/GrowArrow on it.
     """
     if follow:
         return always_redraw(lambda: link(a, b, color, dashed=dashed, both=both))
@@ -272,18 +272,61 @@ def dim(mob, tier="context"):
             part.set_opacity(part.get_fill_opacity() or 0.45)
     return mob
 
-    """Scene with the Latte background and Fira Code defaults applied."""
 
-class LatteScene(Scene):
-    """Scene with the Latte background and Fira Code defaults applied."""
+# --- Motion law: NO fades, ever. Entrances pop (scale from nothing with an
+# ease-out-back overshoot), exits wind up and shrink away. Speed table:
+# pops 0.25s, Create/GrowArrow arrows 0.2s, Write <=0.4s, waits 0.1-0.2s.
+
+def pop_rate(t, s=1.70158):
+    """easeOutBack -- overshoots past the target, then settles. The 'pop'."""
+    t -= 1.0
+    return 1.0 + t * t * ((s + 1.0) * t + s)
+
+
+def drop_rate(t, s=1.70158):
+    """easeInBack -- the mirror image: winds up slightly, then vanishes."""
+    return t * t * ((s + 1.0) * t - s)
+
+
+def pop_in(mob, run_time=0.25, from_edge=None, lag_ratio=None):
+    """The project's ONLY entrance. GrowFromCenter/Edge + overshoot.
+
+    from_edge=DOWN reads as the object sliding up into place while it pops
+    (good for rows and captions under a stable anchor). When lag_ratio is set
+    and the mobject has submobjects, each sub is animated individually via
+    LaggedStart so it grows from ITS OWN centre with proper stagger.
+    """
+    from manim import LaggedStart
+
+    if lag_ratio is not None and hasattr(mob, 'submobjects') and len(mob.submobjects) > 1:
+        anims = []
+        for sub in mob.submobjects:
+            anims.append(GrowFromCenter(sub, rate_func=pop_rate))
+        return LaggedStart(*anims, lag_ratio=lag_ratio, run_time=run_time)
+
+    if from_edge is not None:
+        return GrowFromEdge(mob, from_edge, run_time=run_time, rate_func=pop_rate)
+    return GrowFromCenter(mob, run_time=run_time, rate_func=pop_rate)
+
+
+def pop_out(mob, run_time=0.2, lag_ratio=None):
+    """The only exit besides a hard cut: wind up, then shrink to nothing."""
+    kwargs = {"run_time": run_time, "rate_func": drop_rate}
+    if lag_ratio is not None:
+        kwargs["lag_ratio"] = lag_ratio
+    return ShrinkToCenter(mob, **kwargs)
+
+
+class MochaScene(Scene):
+    """Scene with the Mocha background and Fira Code defaults applied."""
 
     def setup(self):
         super().setup()
-        self.camera.background_color = LATTE["base"]
+        self.camera.background_color = MOCHA["base"]
 
     def label(self, txt, size=26, color=None, weight=NORMAL):
         return Text(txt, font=FONT, font_size=size,
-                    color=color or LATTE["text"], weight=weight)
+                    color=color or MOCHA["text"], weight=weight)
 
     def title(self, txt, size=34):
         t = self.label(txt, size=size, weight=BOLD)
@@ -291,7 +334,7 @@ class LatteScene(Scene):
         return t
 
     def caption(self, txt, size=20):
-        return self.label(txt, size=size, color=LATTE["subtext0"])
+        return self.label(txt, size=size, color=MOCHA["subtext0"])
 
 
 def component(name, accent, sub=None, width=2.9, height=1.0, font_size=24):
@@ -301,9 +344,9 @@ def component(name, accent, sub=None, width=2.9, height=1.0, font_size=24):
         stroke_color=accent, stroke_width=2.5,
         fill_color=accent, fill_opacity=0.12,
     )
-    lines = VGroup(Text(name, font=FONT, font_size=font_size, color=LATTE["text"]))
+    lines = VGroup(Text(name, font=FONT, font_size=font_size, color=MOCHA["text"]))
     if sub:
-        lines.add(Text(sub, font=FONT, font_size=font_size - 7, color=LATTE["subtext0"]))
+        lines.add(Text(sub, font=FONT, font_size=font_size - 7, color=MOCHA["subtext0"]))
         lines.arrange(DOWN, buff=0.11)
     # Never let a label touch its border: Fira Code is monospace, so a long name
     # outgrows a fixed-width box quickly. Scale down to fit rather than clipping.
@@ -323,7 +366,7 @@ def link(a, b, color=None, dashed=False, both=False, buff=0.10, width=3.0):
         a.get_boundary_point(normalize(b.get_center() - a.get_center())),
         b.get_boundary_point(normalize(a.get_center() - b.get_center())),
         buff=buff, stroke_width=width,
-        color=color or LATTE["overlay1"],
+        color=color or MOCHA["overlay1"],
         max_tip_length_to_length_ratio=0.12,
         tip_length=0.2,
     )
@@ -356,7 +399,7 @@ def clamp_to_frame(mob, pad=0.25):
 
 
 def edge_label(txt, mob, size=17, color=None, shift=UP * 0.22):
-    t = Text(txt, font=FONT, font_size=size, color=color or LATTE["overlay2"])
+    t = Text(txt, font=FONT, font_size=size, color=color or MOCHA["overlay2"])
     t.move_to(mob.get_center() + shift)
     return t
 
@@ -442,7 +485,7 @@ def audit_layout(named, max_overlap=0.03, allow=(), connections=(),
 # no Catppuccin style, so register one rather than settle for an approximate
 # light theme -- Code() then matches the rest of the clip exactly.
 
-def _register_pygments_style(name="catppuccin-latte"):
+def _register_pygments_style(name="catppuccin-mocha"):
     import sys
     import types
 
@@ -451,37 +494,37 @@ def _register_pygments_style(name="catppuccin-latte"):
                                 Punctuation, String, Token)
     from pygments.style import Style
 
-    class CatppuccinLatteStyle(Style):
-        background_color = LATTE["mantle"]
+    class CatppuccinMochaStyle(Style):
+        background_color = MOCHA["mantle"]
         styles = {
-            Token: LATTE["text"],
+            Token: MOCHA["text"],
             # Colour only, no italic/bold: Manim's Code char-generation miscounts
             # glyphs when a pygments style applies a font style, and dies with
             # "IndexError: list index out of range" in _gen_chars.
-            Comment: LATTE["overlay2"],
-            Keyword: LATTE["mauve"],
-            Keyword.Type: LATTE["yellow"],
-            Name: LATTE["text"],
-            Name.Function: LATTE["blue"],
-            Name.Class: LATTE["yellow"],
-            Name.Namespace: LATTE["yellow"],
-            Name.Builtin: LATTE["red"],
-            Name.Builtin.Pseudo: LATTE["red"],
-            Name.Attribute: LATTE["blue"],
-            Name.Decorator: LATTE["peach"],
-            String: LATTE["green"],
-            String.Escape: LATTE["pink"],
-            Number: LATTE["peach"],
-            Operator: LATTE["sky"],
-            Punctuation: LATTE["overlay2"],
-            Error: LATTE["red"],
+            Comment: MOCHA["overlay2"],
+            Keyword: MOCHA["mauve"],
+            Keyword.Type: MOCHA["yellow"],
+            Name: MOCHA["text"],
+            Name.Function: MOCHA["blue"],
+            Name.Class: MOCHA["yellow"],
+            Name.Namespace: MOCHA["yellow"],
+            Name.Builtin: MOCHA["red"],
+            Name.Builtin.Pseudo: MOCHA["red"],
+            Name.Attribute: MOCHA["blue"],
+            Name.Decorator: MOCHA["peach"],
+            String: MOCHA["green"],
+            String.Escape: MOCHA["pink"],
+            Number: MOCHA["peach"],
+            Operator: MOCHA["sky"],
+            Punctuation: MOCHA["overlay2"],
+            Error: MOCHA["red"],
         }
 
-    module_name = "catppuccin_latte_pygments"
+    module_name = "catppuccin_mocha_pygments"
     module = types.ModuleType(module_name)
-    module.CatppuccinLatteStyle = CatppuccinLatteStyle
+    module.CatppuccinMochaStyle = CatppuccinMochaStyle
     sys.modules[module_name] = module
-    pstyles._STYLE_NAME_TO_MODULE_MAP[name] = (module_name, "CatppuccinLatteStyle")
+    pstyles._STYLE_NAME_TO_MODULE_MAP[name] = (module_name, "CatppuccinMochaStyle")
     if hasattr(pstyles, "STYLE_MAP"):
         pstyles.STYLE_MAP[name] = module_name
     return name
@@ -503,9 +546,9 @@ def code_block(source, language="rust", size=17, width=None, line_numbers=False)
         add_line_numbers=line_numbers,
         background="rectangle",
         background_config={
-            "stroke_color": LATTE["surface1"],
+            "stroke_color": MOCHA["surface1"],
             "stroke_width": 2.0,
-            "fill_color": LATTE["mantle"],
+            "fill_color": MOCHA["mantle"],
             "fill_opacity": 1.0,
             "corner_radius": 0.12,
         },

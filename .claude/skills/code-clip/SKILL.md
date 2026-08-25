@@ -5,7 +5,7 @@ description: Create a syntax-highlighted code clip for this video project from t
 
 # Code clips from real source
 
-Renders a snippet as a Catppuccin Latte code block, 2048x1280 @ 30fps, published to `manim/`. Scenes live in `.manim/scenes/code_clips.py` — add a class there rather than starting a new file, so all code clips stay visually identical.
+Renders a snippet as a Catppuccin Mocha code block, 2048x1280 @ 30fps, published to `manim/`. Scenes live in `.manim/scenes/code_clips.py` — add a class there rather than starting a new file, so all code clips stay visually identical.
 
 ## The rule that matters
 
@@ -69,7 +69,7 @@ Trimming is fine and usually necessary — dropping error branches, collapsing a
 ## Gotchas
 
 - **Never set Fira Code on a code block.** Its `//` ligature collapses two characters into one glyph, so Manim's per-character mapping overruns and `Code()` dies with `IndexError: list index out of range` in `_gen_chars`. `disable_ligatures=True` does not help — `Code` breaks before applying it. `code_block()` uses `CODE_FONT`, auto-detected as a ligature-free mono. `sudo pacman -S ttf-fira-mono` installs the matching ligature-free Fira face and `_pick_code_font()` will pick it up automatically; otherwise it falls back to DejaVu Sans Mono. Display text elsewhere keeps Fira Code, where ligatures render `->` and `==` attractively.
-- Highlighting uses a `catppuccin-latte` pygments style registered at import in `catppuccin.py` (keywords mauve, strings green, comments overlay2, constants peach, operators sky). Do not pass a stock style — it will not match the other clips.
+- Highlighting uses a `catppuccin-mocha` pygments style registered at import in `catppuccin.py` (keywords mauve, strings green, comments overlay2, constants peach, operators sky). Do not pass a stock style — it will not match the other clips.
 - Avoid font styles in that pygments style. Italic/bold entries were the first suspect for the `_gen_chars` crash, and colour-only keeps it simple.
 - Reading time is the whole point: 27 lines of Rust needs ~12s, not the ~3s a default `wait()` gives. `_CodeClip` scales the hold; don't override it downward.
 - Language is `rust` by default. Pass `language=` to `code_block()` for anything else (`toml` for `Cargo.toml`, `bash` for CLI usage).

@@ -57,7 +57,7 @@ From the transcripts, write a plan and **show it to the user before building**:
 
 - **Spine** — the narrative order of clips. Recording order is not always it.
 - **Theme** — what the video argues, in one sentence. Everything serves it.
-- **Visual language** — Catppuccin Latte + Fira Code is fixed (`CLAUDE.md`).
+- **Visual language** — Catppuccin Mocha + Fira Code is fixed (`CLAUDE.md`).
   Decide the recurring motifs: does the architecture diagram return as a
   through-line? Is there a consistent colour for the component under discussion?
 - **What needs a visual** — where the narration describes something spatial or
@@ -93,10 +93,22 @@ composition, so they fill the frame and nothing is scaled. This is what
 
 Use **`meme-pass`** for the sweep, **`find-memes`** for individual assets.
 
-Roughly one beat per 60–90 s of finished video, only where the narration already
-carries the joke, and never over an explanation. Writes `memes/PLACEMENT.md`.
+The video should feel dense — text, gifs and emoji throughout, not sparse. But:
 
-Flag obvious studio content (film/TV/sport) rather than shipping it silently.
+- **A gif is used at most ONCE in the whole video.** `check_no_repeated_gifs()`
+  fails the build on a repeat, so source a new one instead of reusing. Budget for
+  roughly one gif per 15–20 s of finished video, all distinct.
+- **Match the beat's emotion, not its topic.** A bouncing dog on "the blocks are
+  not being downloaded as good as it could" is wrong; a "waiting" gif is right.
+- **Render each candidate composited into a real frame and LOOK at it before
+  using it.** A GIPHY title is not evidence: two titled plainly `robot GIF` and
+  `Happy Robot GIF` were both Bender from Futurama, and others that sounded
+  generic carried a network watermark, burned-in captions, an identifiable soap
+  actor, or a real private individual at a branded event. Drop studio/brand IP
+  and identifiable private people — report the call, don't ship it silently.
+- Emoji may repeat, but only where the repeat means something.
+
+Writes `memes/PLACEMENT.md`.
 
 ## Stage 5 — Audio
 
@@ -110,17 +122,30 @@ Audio Library: no key, no Content ID risk. Writes `audio/PLACEMENT.md`.
 
 Follow `docs/remotion-video-guidelines.md`. In short:
 
-1. `cd .remotion && npm install && npm i @remotion/transitions @remotion/media-utils`
-   — `node_modules` is gitignored and does **not** travel between git worktrees,
-   so this is needed even though another worktree has it.
-2. Build `src/timeline.ts` — a manifest of segments with durations read from the
-   files (`ffprobe`/`getVideoMetadata`), never hand-typed.
-3. Build `src/FinalVideo.tsx` with `<Series>` / `<TransitionSeries>`; register it
-   in `src/Root.tsx` at **2048×1280 @ 30 fps** — the native source size.
-4. Do not scale or crop any source: everything is already 2048×1280.
-5. Overlays from `memes/PLACEMENT.md`, audio from `audio/PLACEMENT.md` with the
-   bed ducked under speech using the `.srt` cue ranges.
-6. Preview a slice before the full render: `--frames=0-300`.
+1. `cd .remotion && npm install` — `node_modules` is gitignored and does **not**
+   travel between git worktrees, so this is needed even though another worktree
+   has it.
+2. Write the per-video editorial plan in `scripts/build_timeline_manifest.py`
+   (gitignored — it is this episode's content). It imports the committed engine
+   `scripts/timeline_lib.py`, which probes every asset's real duration and
+   dimensions with `ffprobe`; never hand-type a duration or a frame number.
+3. Run it after **every** change — it writes `.remotion/src/timeline-data.json`
+   and enforces the editorial rules, failing or reporting on:
+   text before it is spoken, a gif used twice, a cutaway that could never render
+   (starts at/after its segment's end), and any bare stretch outside a cutaway.
+   Treat its output as the source of truth, not your own reading of the timing.
+4. The composition (`src/FinalVideo.tsx`, `src/NarrationSegment.tsx`, the
+   `src/components/*`) is template code — normally you add plan entries, not
+   components. Registered in `src/Root.tsx` at **2048×1280 @ 30 fps**.
+5. Do not scale or crop any source: everything is already 2048×1280.
+6. Audio from `audio/PLACEMENT.md`, bed ducked under speech using `.srt` cues.
+7. **Smoke-render 2–3 frames before any long render.** `tsc --noEmit` does *not*
+   catch everything esbuild rejects — a malformed JSX comment typechecked clean
+   and failed the bundle. Also never pipe `tsc` through `head` and trust the exit
+   status; a pipe reports the *last* command's status.
+8. Then preview a slice or a half-res pass (`--scale=0.5`) before the real export.
+   Run Remotion **from `.remotion/`** — `npx --prefix .remotion` silently no-ops
+   (it cannot find the entry point and still exits 0).
 
 **Export on the GPU:**
 

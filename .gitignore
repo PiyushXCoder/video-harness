@@ -22,3 +22,18 @@ memes/*
 
 # Remotion's own render output — regenerable, large (node_modules/ rule above covers deps)
 .remotion/out/
+
+# Generated from real durations of gitignored media (processed/, manim/, memes/,
+# screencasts/) — meaningless in a checkout without those files. Regenerate with
+# scripts/build_timeline_manifest.py.
+.remotion/src/timeline-data.json
+
+# Per-video editorial plan -- names this episode's actual clips, gifs, punch
+# lines and emoji, so it is NOT template code. The reusable engine it imports
+# (scripts/timeline_lib.py) IS committed. Start a new video by writing a fresh
+# plan against that engine; see docs/remotion-video-guidelines.md.
+scripts/build_timeline_manifest.py
+
+# Finished renders and per-video planning notes
+final.mp4
+plan.md

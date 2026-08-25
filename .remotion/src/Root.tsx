@@ -1,9 +1,17 @@
 import React from 'react';
 import {Composition} from 'remotion';
-
-// One <Composition> per clip. Default 2048x1280 @ 30fps (8:5 — matches this
-// project's screen-recording aspect ratio). Add new clips below.
+import {FinalVideo} from './FinalVideo';
+import {manifest} from './timeline';
 
 export const RemotionRoot: React.FC = () => {
-  return <></>;
+  return (
+    <Composition
+      id="FinalVideo"
+      component={FinalVideo}
+      durationInFrames={manifest.totalDurationInFrames}
+      fps={manifest.fps}
+      width={manifest.width}
+      height={manifest.height}
+    />
+  );
 };
