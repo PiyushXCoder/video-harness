@@ -46,12 +46,19 @@ images/*
 # IS committed. Start a new video by writing a fresh plan against that engine;
 # see docs/remotion-video-guidelines.md.
 scripts/build_timeline_manifest.py
+# Same split for the hook: scripts/hook_lib.py is the tracked engine,
+# this is one episode's opening 30 seconds. See .claude/skills/hook-plan/.
+scripts/build_hook_manifest.py
 
 # --- Per-video Remotion timeline data ---
 # Generated from the real durations of ignored media (processed/, manim/,
 # memes/, screencasts/) -- meaningless in a checkout without those files.
 # Regenerate with scripts/build_timeline_manifest.py.
 .remotion/src/timeline-data.json
+# The hook's equivalent. `python3 scripts/hook_lib.py --stub` writes a
+# placeholder of both when you need to work on the template with no
+# episode content present.
+.remotion/src/hook-data.json
 
 # --- Per-video planning notes ---
 # `progress.md` is this video's todo list / working log -- it belongs to the
