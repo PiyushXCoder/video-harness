@@ -16,6 +16,31 @@ early rather than polishing in private.
 **This is the stage that decides whether the video is good.** Do not let it get
 skipped on the way to generating clips.
 
+## Read DESIGN.md before planning anything visual
+
+`DESIGN.md` is the design authority, and it constrains what is *plannable* — not
+just how a clip is later coloured. Reading it after the plan is written means
+discovering the plan cannot be built.
+
+The constraints that change plans:
+
+- **The accent is functional, never decorative, and the frame is otherwise
+  achromatic** — the content supplies the colour. So "a colourful chart" is not
+  a plannable beat; "a chart where the component under discussion is the accent
+  and everything else is grey" is.
+- **Nothing sits at frame centre while a speaker is on screen** (§10.5). If a
+  beat needs a title dead-centre, the plan must say the beat has no speaker.
+- **Every piece of on-screen text needs a scrim or a heavy shadow** (§10.3),
+  which means it needs to sit in one of §10.4's zones. A beat wanting text in
+  four places at once is not plannable.
+- **Minimum shot 45 frames, code needs 2.5 s + 0.3 s per line** (§10.6, §10.8).
+  These set the runtime floor for a beat, so they belong in the estimate.
+- **Section 10 overrides section 3's sizes**; section 8 does not apply at all.
+
+The plan does not restate `DESIGN.md`. `## Visual language` records **how this
+video applies it** — which recurring motif returns, which role marks the
+component under discussion — not a fresh palette.
+
 ## Inputs you'll be handed
 
 | where | what | notes |
@@ -79,10 +104,12 @@ rather than guess when a name is opaque.
 
    - **Spine** — the narrative order of clips. Recording order is not always it.
    - **Theme** — what the video argues, in one sentence. Everything serves it.
-   - **Visual language** — fixed by `DESIGN.md`; read it before deciding anything visual.
-     Decide the recurring motifs: does the architecture diagram return as a
-     through-line? Is there a consistent colour for the component under
-     discussion?
+   - **Visual language** — how *this* video applies `DESIGN.md`, not a new
+     palette. Which recurring motifs return: does the architecture diagram come
+     back as a through-line? Which semantic role marks the component under
+     discussion (the accent is the obvious one — but it is functional, so using
+     it means "this is the thing", not "this is pretty")? Which beats have no
+     speaker, and so may use the centre?
    - **What needs a visual** — where the narration describes something spatial or
      procedural that words alone won't carry.
    - **What needs nothing** — talking-head stretches that should stay clean. An
@@ -120,8 +147,8 @@ rather than guess when a name is opaque.
    |---|---|
    | `## Theme` | one sentence: what the video argues |
    | `## Spine` | ordered clips: # \| clip \| what it covers \| runtime |
-   | `## Visual language` | recurring motifs, colour roles, what returns |
-   | `## Visuals` | beat \| engine (manim/remotion) \| what it shows \| real source ref |
+   | `## Visual language` | recurring motifs, which semantic ROLES carry what, which beats have no speaker, what returns |
+   | `## Visuals` | beat \| engine (manim/remotion) \| what it shows \| ROLE it emphasises \| real source ref |
    | `## Leave clean` | stretches that get no graphic, and why |
    | `## The promise` | the video's most compelling claim, and where the body delivers it — what `hook-plan` will advertise |
    | `## Runtime` | estimate, and where it's slack |

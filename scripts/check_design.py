@@ -37,6 +37,16 @@ SCAN = [
     (REPO_ROOT / ".manim" / "scenes", ("*.py",)),
 ]
 
+# The per-video editorial plans. Gitignored, so absent in a bare checkout --
+# but when a video is in flight this is where colours actually get chosen, so
+# leaving it unscanned would leave the rule unenforced exactly where it matters.
+# resolveColor() accepts a hex, so a hardcoded one renders perfectly and then
+# silently stops tracking DESIGN.md.
+OPTIONAL_FILES = [
+    REPO_ROOT / "scripts" / "build_timeline_manifest.py",
+    REPO_ROOT / "scripts" / "build_hook_manifest.py",
+]
+
 SKIP_DIRS = {"node_modules", "media", "__pycache__"}
 
 RULES = [
@@ -69,6 +79,9 @@ def iter_files():
                 if p.resolve() in DESIGN_MODULES:
                     continue
                 yield p
+    for p in OPTIONAL_FILES:
+        if p.is_file():
+            yield p
 
 
 def main():

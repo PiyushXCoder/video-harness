@@ -440,7 +440,11 @@ Rules:
 
 1. **A component or scene never names a colour or a size directly.** It imports a
    token. `scripts/check_design.py` fails the build on a raw hex or a bare font
-   size in a component.
+   size — in the components, the scenes, **and the per-video editorial plans**
+   (`scripts/build_timeline_manifest.py`, `scripts/build_hook_manifest.py`),
+   which is where colours actually get chosen episode to episode. The plan writes
+   ROLE NAMES (`accent`, `warning`), never hex codes, and omits sizes entirely so
+   the component uses its token.
 2. **Changing this document means editing those two files**, then re-rendering.
    That is the whole update path; there is no third place to look.
 3. Manim works in **scene units**, not pixels: at 1280 px tall and a frame height

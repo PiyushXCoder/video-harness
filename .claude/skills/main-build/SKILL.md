@@ -10,7 +10,26 @@ this one realises it and **invents nothing** — every creative choice comes fro
 `plans/main.md`, every mechanical one (durations, frame numbers, encode flags) is
 derived here. **Remotion is the editor; there is no manual NLE step.**
 
-Read `docs/remotion-video-guidelines.md` before assembling anything.
+## Read before assembling anything
+
+**`DESIGN.md`** — the design authority. Section 10 is the video adaptation and
+overrides section 3's web-scaled sizes; section 8 does not apply. Everything it
+specifies is encoded in **`.remotion/src/design.ts`** and
+**`.manim/scenes/design.py`**; those two are the only files allowed to name a
+raw value, and `python3 scripts/check_design.py` fails the build otherwise.
+
+**`docs/remotion-video-guidelines.md`** — the composition standard.
+
+The editorial plan you write in step 5 is a design consumer too: **stamp, punch
+and emoji colours are ROLE NAMES** (`accent`, `warning`, `info`, `text_muted`),
+never hex codes. `resolveColor()` accepts a hex, so a hardcoded one renders
+perfectly and then silently fails to change when `DESIGN.md` does — the failure
+is invisible until someone re-themes and half the video stays put.
+
+**Do not pass a `size`.** Omit it and the component uses its design token. The
+manifest builder deliberately injects no default: stamp size lived in three
+places at once (the token, the Python default, the component default) until that
+was fixed, and a size in the plan re-creates exactly that fork.
 
 This builds the body only. `hook-build` builds the opening, and `combine-all`
 joins them.
@@ -109,7 +128,12 @@ joins them.
    h264/h265 only, and **never pass `--crf` alongside it** — Remotion drops to
    software encoding when a CRF is set with hardware acceleration.
 
-9. **Verify, and look at it.**
+9. **Verify, and look at it.** Run the design lint first — it is instant, and a
+   stray hex renders perfectly so the eye will not catch it:
+
+   ```bash
+   python3 scripts/check_design.py
+   ```
 
    ```bash
    ffprobe -v error -select_streams v:0 \
@@ -145,3 +169,6 @@ joins them.
   layer itself; three overlays were once silently invisible this way.
 - **A meme or cue on everything** because the tooling made it cheap. Restraint is
   the difference between professional and busy.
+- **A hex or a `size` in the editorial plan.** It renders correctly today and
+  quietly stops tracking `DESIGN.md` forever. Use role names, omit sizes, and let
+  `check_design.py` and the design tokens do their job.
