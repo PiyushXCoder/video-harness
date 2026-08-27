@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
-import {MOCHA, FONT} from '../palette';
 import type {HookTextData} from '../hook';
+import {ROLE, FONT_DISPLAY, WEIGHT, resolveColor} from '../design';
 
 const WORD_STAGGER = 3; // frames between words -- same cadence as PunchText
 const FADE_IN = 8;
@@ -35,10 +35,10 @@ export const HookText: React.FC<{
   durationInFrames: number;
 }> = ({words, color = 'text', size = 72, anchor = 'center', durationInFrames}) => {
   const frame = useCurrentFrame();
-  // The manifest carries a Catppuccin palette NAME ('peach'), not a hex
+  // The manifest carries a DESIGN.md ROLE name ('accent'), not a hex
   // value -- same contract as Stamp/PunchText. Fall through to the literal
   // so a raw hex still works.
-  const hex = (MOCHA as any)[color] || color;
+  const hex = resolveColor(color);
 
   // Every interpolate is clamped -- an unclamped one drifts the element off
   // frame in exactly the frames nobody previews (CLAUDE.md).
@@ -59,13 +59,13 @@ export const HookText: React.FC<{
           justifyContent: 'center',
           maxWidth: 1600,
           padding: '0 48px',
-          fontFamily: FONT,
+          fontFamily: FONT_DISPLAY,
           fontSize: size,
-          fontWeight: 700,
+          fontWeight: WEIGHT.bold,
           lineHeight: 1.2,
           color: hex,
           textAlign: 'center',
-          textShadow: `0 4px 24px ${MOCHA.crust}`,
+          textShadow: `0 4px 24px ${ROLE.scrim}`,
         }}
       >
         {words.map((word, i) => {

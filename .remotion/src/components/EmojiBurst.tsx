@@ -1,6 +1,6 @@
 import React from 'react';
 import {spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import {MOCHA} from '../palette';
+import {SIZE, resolveColor, glow} from '../design';
 
 interface Props {
   emoji: string;
@@ -30,9 +30,9 @@ export const EmojiBurst: React.FC<Props> = ({
     <div style={{
       position: 'absolute', top: '22%', left: '80%',
       transform: `translate(-50%, -50%) scale(${scale * 1.5})`,
-      fontSize: 120,
+      fontSize: SIZE.emoji,
       opacity,
-      filter: `drop-shadow(0 0 30px rgba(255,200,0,0.5))`,
+      filter: `drop-shadow(${glow(resolveColor(color), 30, '80')})`,
     }}>
       {emoji}
     </div>

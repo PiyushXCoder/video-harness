@@ -12,6 +12,7 @@ import {SubtitleCaptions} from './components/SubtitleCaptions';
 import {PunchText} from './components/PunchText';
 import {BootTerminal} from './components/BootTerminal';
 import {activeCutaway, CutawaySafeSequence} from './components/CutawaySafe';
+import {ROLE} from './design';
 
 /**
  * Captions run continuously so no stretch of speech is ever bare, with two
@@ -59,7 +60,7 @@ export const NarrationSegment: React.FC<{
   const progressPct = ((segmentIndex + 0.5) / totalSegments) * 100;
 
   return (
-    <AbsoluteFill style={{backgroundColor: '#000'}}>
+    <AbsoluteFill style={{backgroundColor: ROLE.bg}}>
       <OffthreadVideo src={staticFile(segment.file)} />
 
       {segment.cutaways.map((c) => (

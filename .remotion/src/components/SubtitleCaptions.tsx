@@ -1,7 +1,7 @@
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import type {CueData} from '../timeline';
-import {MOCHA, FONT} from '../palette';
+import {ROLE, FONT_DISPLAY, SIZE, WEIGHT, SHADOW} from '../design';
 
 /**
  * Word-pop captions driven by the segment's OWN .srt cues.
@@ -34,7 +34,7 @@ export const SubtitleCaptions: React.FC<{cues: CueData[]}> = ({cues}) => {
     <>
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0, height: '28%',
-        background: `linear-gradient(0deg, ${MOCHA.crust}bb 0%, ${MOCHA.crust}00 100%)`,
+        background: `linear-gradient(0deg, ${ROLE.scrim}bb 0%, ${ROLE.scrim}00 100%)`,
       }} />
       {/* maxWidth 1240 of 2048, not 1600: a full-width caption line reached
           into the bottom corners and collided with the corner meme insets
@@ -61,13 +61,13 @@ export const SubtitleCaptions: React.FC<{cues: CueData[]}> = ({cues}) => {
 
           return (
             <span key={i} style={{
-              fontFamily: FONT, fontSize: 52, fontWeight: 700,
-              color: MOCHA.text, opacity,
+              fontFamily: FONT_DISPLAY, fontSize: SIZE.xxl, fontWeight: WEIGHT.bold,
+              color: ROLE.text, opacity,
               // Settles to scale 1 and stays -- the pop is the entrance, not
               // a loop, so the line reads as stable text once it has landed.
               transform: `scale(${interpolate(progress, [0, 1], [0.7, 1])})`,
               display: 'inline-block',
-              textShadow: `0 4px 20px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.8)`,
+              textShadow: SHADOW.text,
             }}>
               {word}
             </span>

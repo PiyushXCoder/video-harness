@@ -1,6 +1,6 @@
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import {MOCHA, FONT} from '../palette';
+import {ROLE, FONT_DISPLAY, SIZE, SHADOW, glow} from '../design';
 
 interface Props {
   lines: string[];
@@ -36,7 +36,7 @@ export const BootTerminal: React.FC<Props> = ({lines, durationInFrames}) => {
     <>
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: '42%',
-        background: `linear-gradient(180deg, ${MOCHA.crust}aa 0%, ${MOCHA.crust}00 100%)`,
+        background: `linear-gradient(180deg, ${ROLE.scrim}aa 0%, ${ROLE.scrim}00 100%)`,
         opacity: out,
       }} />
       <div style={{
@@ -59,13 +59,13 @@ export const BootTerminal: React.FC<Props> = ({lines, durationInFrames}) => {
 
           return (
             <div key={i} style={{
-              fontFamily: FONT, fontSize: 28, color: MOCHA.green,
+              fontFamily: FONT_DISPLAY, fontSize: SIZE.lg, color: ROLE.accent,
               opacity,
               transform: `translateX(${interpolate(progress, [0, 1], [-20, 0])}px)`,
-              textShadow: `0 0 20px ${MOCHA.green}66, 0 2px 8px rgba(0,0,0,0.85)`,
+              textShadow: `${glow(ROLE.accent, 20)}, ${SHADOW.text}`,
               letterSpacing: '0.02em',
             }}>
-              <span style={{color: MOCHA.mauve}}>{'>'}</span>{' '}{line}
+              <span style={{color: ROLE.textMuted}}>{'>'}</span>{' '}{line}
             </div>
           );
         })}

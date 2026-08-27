@@ -1,6 +1,6 @@
 import React from 'react';
 import {spring, useCurrentFrame, useVideoConfig, interpolate} from 'remotion';
-import {MOCHA, FONT} from '../palette';
+import {ROLE, FONT_DISPLAY, SIZE, WEIGHT, SHADOW, glow} from '../design';
 
 type EndCardProps = {
   // All copy is per-video and comes from the manifest. Nothing here is
@@ -36,7 +36,7 @@ export const EndCard2: React.FC<EndCardProps> = ({progressLabel, headline, subli
   return (
     <div style={{
       position: 'absolute', inset: 0,
-      background: `linear-gradient(180deg, ${MOCHA.base} 0%, ${MOCHA.mantle} 100%)`,
+      background: `linear-gradient(180deg, ${ROLE.bg} 0%, ${ROLE.surface} 100%)`,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       gap: 40,
     }}>
@@ -45,22 +45,22 @@ export const EndCard2: React.FC<EndCardProps> = ({progressLabel, headline, subli
         display: 'flex', alignItems: 'center', gap: 16,
       }}>
         <span style={{
-          fontFamily: FONT, fontSize: 28, color: MOCHA.subtext0,
+          fontFamily: FONT_DISPLAY, fontSize: SIZE.lg, color: ROLE.textMuted,
         }}>{progressLabel}</span>
         <div style={{
           width: 800, height: 32, borderRadius: 16,
-          background: MOCHA.surface0, overflow: 'hidden',
+          background: ROLE.border, overflow: 'hidden',
           position: 'relative',
         }}>
           <div style={{
             width: barWidth, height: '100%', borderRadius: 16,
-            background: `linear-gradient(90deg, ${MOCHA.green}, ${MOCHA.teal})`,
-            boxShadow: `0 0 30px ${MOCHA.green}66`,
+            background: `linear-gradient(90deg, ${ROLE.accent}, ${ROLE.accent})`,
+            boxShadow: `0 0 30px ${ROLE.accent}66`,
           }} />
         </div>
         <span style={{
-          fontFamily: FONT, fontSize: 28, fontWeight: 700,
-          color: MOCHA.green,
+          fontFamily: FONT_DISPLAY, fontSize: SIZE.lg, fontWeight: WEIGHT.bold,
+          color: ROLE.accent,
           opacity: interpolate(barProgress, [0.5, 1], [0, 1], {
             extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
           }),
@@ -70,9 +70,9 @@ export const EndCard2: React.FC<EndCardProps> = ({progressLabel, headline, subli
       {/* Seed CTA */}
       <div style={{
         transform: `scale(${ctaProgress}) translateY(${(1 - ctaProgress) * 30}px)`,
-        fontFamily: FONT, fontSize: 56, fontWeight: 700,
-        color: MOCHA.yellow,
-        textShadow: `0 0 40px ${MOCHA.yellow}66, 0 4px 20px rgba(0,0,0,0.8)`,
+        fontFamily: FONT_DISPLAY, fontSize: SIZE.hero, fontWeight: WEIGHT.bold,
+        color: ROLE.warning,
+        textShadow: `${glow(ROLE.warning)}, ${SHADOW.textSoft}`,
       }}>
         {headline}
       </div>
@@ -80,9 +80,9 @@ export const EndCard2: React.FC<EndCardProps> = ({progressLabel, headline, subli
       {/* Next-up */}
       <div style={{
         transform: `scale(${nextProgress}) translateY(${(1 - nextProgress) * 20}px)`,
-        fontFamily: FONT, fontSize: 32, color: MOCHA.subtext0,
+        fontFamily: FONT_DISPLAY, fontSize: SIZE.xl, color: ROLE.textMuted,
         opacity: nextProgress,
-        textShadow: `0 2px 12px rgba(0,0,0,0.6)`,
+        textShadow: SHADOW.textSoft,
       }}>
         {subline}
       </div>

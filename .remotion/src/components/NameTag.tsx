@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import {MOCHA, FONT} from '../palette';
+import {ROLE, FONT_DISPLAY, SIZE} from '../design';
 
 type NameTagProps = {
   name: string;
@@ -34,10 +34,10 @@ export const NameTag: React.FC<NameTagProps> = ({name, durationInFrames}) => {
         overflow: 'hidden',
       }}>
         <div style={{
-          fontFamily: FONT, fontSize: 20, color: MOCHA.green,
-          backgroundColor: MOCHA.crust + 'dd',
+          fontFamily: FONT_DISPLAY, fontSize: SIZE.base, color: ROLE.accent,
+          backgroundColor: ROLE.scrim + 'dd',
           padding: '8px 20px',
-          borderLeft: `3px solid ${MOCHA.green}`,
+          borderLeft: `3px solid ${ROLE.accent}`,
           borderRadius: '0 6px 6px 0',
           transform: `translateX(${x}px)`,
           opacity,

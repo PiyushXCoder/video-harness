@@ -1,6 +1,6 @@
 import React from 'react';
 import {spring, useCurrentFrame, useVideoConfig, interpolate} from 'remotion';
-import {MOCHA, FONT} from '../palette';
+import {ROLE, FONT_DISPLAY, SIZE, WEIGHT, SHADOW, glow} from '../design';
 
 /**
  * ReelEndCard — 1080×1920 vertical end card for reels/shorts.
@@ -46,7 +46,7 @@ export const ReelEndCard: React.FC = () => {
       style={{
         position: 'absolute',
         inset: 0,
-        background: `linear-gradient(180deg, ${MOCHA.base} 0%, ${MOCHA.mantle} 100%)`,
+        background: `linear-gradient(180deg, ${ROLE.bg} 0%, ${ROLE.surface} 100%)`,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -63,7 +63,7 @@ export const ReelEndCard: React.FC = () => {
           width: 720,
           height: 6,
           borderRadius: 3,
-          background: MOCHA.surface0,
+          background: ROLE.border,
           overflow: 'hidden',
         }}
       >
@@ -72,8 +72,8 @@ export const ReelEndCard: React.FC = () => {
             width: barW,
             height: '100%',
             borderRadius: 3,
-            background: `linear-gradient(90deg, ${MOCHA.green}, ${MOCHA.teal})`,
-            boxShadow: `0 0 16px ${MOCHA.green}88`,
+            background: `linear-gradient(90deg, ${ROLE.accent}, ${ROLE.accent})`,
+            boxShadow: `0 0 16px ${ROLE.accent}88`,
           }}
         />
       </div>
@@ -86,13 +86,13 @@ export const ReelEndCard: React.FC = () => {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
           }),
-          fontFamily: FONT,
-          fontSize: 54,
-          fontWeight: 800,
-          color: MOCHA.yellow,
+          fontFamily: FONT_DISPLAY,
+          fontSize: SIZE.hero,
+          fontWeight: WEIGHT.bold,
+          color: ROLE.warning,
           textAlign: 'center',
           lineHeight: 1.15,
-          textShadow: `0 0 36px ${MOCHA.yellow}55, 0 4px 18px rgba(0,0,0,0.75)`,
+          textShadow: `${glow(ROLE.warning, 36, '55')}, ${SHADOW.textSoft}`,
         }}
       >
         Full video
@@ -108,13 +108,13 @@ export const ReelEndCard: React.FC = () => {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
           }),
-          fontFamily: FONT,
-          fontSize: 32,
-          fontWeight: 600,
-          color: MOCHA.text,
+          fontFamily: FONT_DISPLAY,
+          fontSize: SIZE.xl,
+          fontWeight: WEIGHT.semibold,
+          color: ROLE.text,
           textAlign: 'center',
           letterSpacing: 0.5,
-          textShadow: `0 2px 10px rgba(0,0,0,0.6)`,
+          textShadow: SHADOW.textSoft,
         }}
       >
         Link in description
@@ -128,10 +128,10 @@ export const ReelEndCard: React.FC = () => {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
           }),
-          fontFamily: FONT,
-          fontSize: 56,
-          color: MOCHA.green,
-          textShadow: `0 0 20px ${MOCHA.green}66`,
+          fontFamily: FONT_DISPLAY,
+          fontSize: SIZE.hero,
+          color: ROLE.accent,
+          textShadow: `0 0 20px ${ROLE.accent}66`,
         }}
       >
         ↓
@@ -146,9 +146,9 @@ export const ReelEndCard: React.FC = () => {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
           }),
-          fontFamily: FONT,
-          fontSize: 22,
-          color: MOCHA.subtext0,
+          fontFamily: FONT_DISPLAY,
+          fontSize: SIZE.base,
+          color: ROLE.textMuted,
           textAlign: 'center',
         }}
       >

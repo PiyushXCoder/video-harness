@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, Loop, OffthreadVideo, staticFile, useCurrentFrame} from 'remotion';
 import type {OverlayData} from '../timeline';
-import {MOCHA} from '../palette';
+import {ROLE, SHADOW} from '../design';
 
 const ENTRANCE_FRAMES = 6;
 const EXIT_FRAMES = 6;
@@ -81,9 +81,9 @@ export const MemeOverlay: React.FC<{overlay: OverlayData}> = ({overlay}) => {
           transform: `scale(${scale})`,
           borderRadius: 14,
           overflow: 'hidden',
-          border: `2px solid ${MOCHA.surface1}`,
-          boxShadow: '0 12px 28px rgba(76, 79, 105, 0.28)',
-          backgroundColor: MOCHA.mantle,
+          border: `2px solid ${ROLE.border}`,
+          boxShadow: SHADOW.card,
+          backgroundColor: ROLE.surface,
         }}
       >
         {video}

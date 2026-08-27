@@ -1,6 +1,6 @@
 import React from 'react';
 import {spring, useCurrentFrame, useVideoConfig, interpolate} from 'remotion';
-import {MOCHA, FONT} from '../palette';
+import {ROLE, FONT_DISPLAY, WEIGHT, SHADOW, resolveColor, glow} from '../design';
 
 interface Props {
   text: string;
@@ -21,7 +21,7 @@ export const Stamp: React.FC<Props> = ({
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const hex = (MOCHA as any)[color] || color;
+  const hex = resolveColor(color);
 
   const progress = spring({
     frame,
@@ -40,15 +40,15 @@ export const Stamp: React.FC<Props> = ({
     <>
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: '32%',
-        background: `linear-gradient(180deg, ${MOCHA.crust}cc 0%, ${MOCHA.crust}00 100%)`,
+        background: `linear-gradient(180deg, ${ROLE.scrim}cc 0%, ${ROLE.scrim}00 100%)`,
         opacity: exitOpacity,
       }} />
       <div style={{
         position: 'absolute', top: BANNER_TOP, left: '50%',
         transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotate + shake}deg)`,
-        fontFamily: FONT, fontSize: size, fontWeight: 700,
+        fontFamily: FONT_DISPLAY, fontSize: size, fontWeight: WEIGHT.bold,
         color: hex, opacity: exitOpacity,
-        textShadow: `0 0 80px ${hex}aa, 0 0 40px ${hex}66, 0 8px 40px rgba(0,0,0,0.9), 0 4px 16px rgba(0,0,0,0.7)`,
+        textShadow: `${glow(hex, 80, 'aa')}, ${glow(hex)}, ${SHADOW.textHeavy}`,
         textTransform: 'uppercase',
         letterSpacing: '0.05em',
         whiteSpace: 'nowrap',

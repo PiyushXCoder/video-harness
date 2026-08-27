@@ -1,6 +1,6 @@
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import {MOCHA, FONT} from '../palette';
+import {FONT_DISPLAY, WEIGHT, SHADOW, resolveColor, glow} from '../design';
 
 interface Props {
   words: string[];
@@ -31,7 +31,7 @@ export const PunchText: React.FC<Props> = ({
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const hex = (MOCHA as any)[color] || color;
+  const hex = resolveColor(color);
 
   const out = interpolate(
     frame,
@@ -60,11 +60,11 @@ export const PunchText: React.FC<Props> = ({
 
         return (
           <span key={i} style={{
-            fontFamily: FONT, fontSize: size, fontWeight: 700,
+            fontFamily: FONT_DISPLAY, fontSize: size, fontWeight: WEIGHT.bold,
             color: hex, opacity,
             transform: `scale(${interpolate(progress, [0, 1], [0.75, 1])})`,
             display: 'inline-block',
-            textShadow: `0 0 40px ${hex}66, 0 4px 22px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.8)`,
+            textShadow: `${glow(hex)}, ${SHADOW.text}`,
           }}>
             {word}
           </span>

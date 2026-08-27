@@ -9,7 +9,6 @@ import {
 } from 'remotion';
 import {hookManifest} from '../hook';
 import type {HookBeatData, HookCutawayData} from '../hook';
-import {MOCHA} from '../palette';
 import {Cutaway} from '../components/Cutaway';
 import {MemeOverlay} from '../components/MemeOverlay';
 import {Stamp} from '../components/Stamp';
@@ -18,6 +17,7 @@ import {SubtitleCaptions} from '../components/SubtitleCaptions';
 import {BootTerminal} from '../components/BootTerminal';
 import {HookText} from '../components/HookText';
 import {CutawaySafeSequence} from '../components/CutawaySafe';
+import {ROLE} from '../design';
 
 /**
  * A gate that is cutaway-safe only when the beat asked to be.
@@ -192,7 +192,7 @@ export const Hook: React.FC = () => {
   const music = hookManifest.music;
 
   return (
-    <AbsoluteFill style={{backgroundColor: MOCHA.base}}>
+    <AbsoluteFill style={{backgroundColor: ROLE.bg}}>
       {music && (
         <Audio src={staticFile(music.file)} volume={Math.pow(10, music.gainDb / 20)} />
       )}

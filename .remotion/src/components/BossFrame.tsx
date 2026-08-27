@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import {MOCHA, FONT} from '../palette';
+import {ROLE, FONT_DISPLAY, SIZE, WEIGHT, SHADOW, glow} from '../design';
 
 type BossFrameProps = {
   label: string;
@@ -52,7 +52,7 @@ export const BossFrame: React.FC<BossFrameProps> = ({
     <AbsoluteFill>
       {isPowerUp && (
         <AbsoluteFill style={{
-          backgroundColor: MOCHA.yellow, opacity: powerUpFlash,
+          backgroundColor: ROLE.warning, opacity: powerUpFlash,
         }} />
       )}
 
@@ -61,14 +61,14 @@ export const BossFrame: React.FC<BossFrameProps> = ({
         opacity: entrance,
       }}>
         <div style={{
-          fontFamily: FONT, fontSize: 18, color: MOCHA.red,
-          fontWeight: 700, letterSpacing: '2px', marginBottom: 12,
+          fontFamily: FONT_DISPLAY, fontSize: SIZE.sm, color: ROLE.error,
+          fontWeight: WEIGHT.bold, letterSpacing: '2px', marginBottom: 12,
           textTransform: 'uppercase',
         }}>
           FINAL BOSS
         </div>
         <div style={{
-          fontFamily: FONT, fontSize: 32, color: MOCHA.text, fontWeight: 700,
+          fontFamily: FONT_DISPLAY, fontSize: SIZE.xl, color: ROLE.text, fontWeight: WEIGHT.bold,
           marginBottom: 16,
         }}>
           {label}
@@ -77,13 +77,13 @@ export const BossFrame: React.FC<BossFrameProps> = ({
         {hpBar && (
           <div style={{
             width: '100%', height: 20, borderRadius: 10,
-            backgroundColor: MOCHA.surface0, overflow: 'hidden',
-            border: `1px solid ${MOCHA.surface1}`,
+            backgroundColor: ROLE.border, overflow: 'hidden',
+            border: `1px solid ${ROLE.border}`,
           }}>
             <div style={{
               width: `${hpValue}%`, height: '100%',
-              backgroundColor: hpValue > 50 ? MOCHA.green
-                : hpValue > 20 ? MOCHA.yellow : MOCHA.red,
+              backgroundColor: hpValue > 50 ? ROLE.accent
+                : hpValue > 20 ? ROLE.warning : ROLE.error,
               borderRadius: 10,
               transition: 'width 0.3s, background-color 0.3s',
             }} />
@@ -91,7 +91,7 @@ export const BossFrame: React.FC<BossFrameProps> = ({
         )}
         {hpBar && (
           <div style={{
-            fontFamily: FONT, fontSize: 14, color: MOCHA.subtext0,
+            fontFamily: FONT_DISPLAY, fontSize: SIZE.xs, color: ROLE.textMuted,
             marginTop: 6, textAlign: 'right',
           }}>
             HP: {Math.round(hpValue)}%
@@ -114,7 +114,7 @@ export const BossFrame: React.FC<BossFrameProps> = ({
             });
             return (
               <span key={i} style={{
-                fontSize: 28, transform: `scale(${pop})`,
+                fontSize: SIZE.lg, transform: `scale(${pop})`,
               }}>{e}</span>
             );
           })}
@@ -128,9 +128,9 @@ export const BossFrame: React.FC<BossFrameProps> = ({
             extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
           }),
         }}>
-          <span style={{fontSize: 28}}>🐢</span>
+          <span style={{fontSize: SIZE.lg}}>🐢</span>
           <span style={{
-            fontFamily: FONT, fontSize: 14, color: MOCHA.subtext0,
+            fontFamily: FONT_DISPLAY, fontSize: SIZE.xs, color: ROLE.textMuted,
             marginLeft: 8,
           }}>
             {slowPeerLabel}
@@ -144,12 +144,12 @@ export const BossFrame: React.FC<BossFrameProps> = ({
         <div style={{
           position: 'absolute', top: '78%', left: '50%',
           transform: 'translate(-50%, -50%)',
-          fontFamily: FONT, fontSize: 24, color: MOCHA.yellow,
-          fontWeight: 700, letterSpacing: '2px',
+          fontFamily: FONT_DISPLAY, fontSize: SIZE.md, color: ROLE.warning,
+          fontWeight: WEIGHT.bold, letterSpacing: '2px',
           opacity: interpolate(frame, [powerUpFrame, powerUpFrame + 10], [0, 1], {
             extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
           }),
-          textShadow: `0 0 30px ${MOCHA.yellow}66, 0 2px 12px rgba(0,0,0,0.8)`,
+          textShadow: `${glow(ROLE.warning, 30)}, ${SHADOW.textSoft}`,
         }}>
           {powerUpLabel}
         </div>

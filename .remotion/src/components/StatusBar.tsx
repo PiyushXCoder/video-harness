@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
-import {MOCHA, FONT} from '../palette';
+import {ROLE, FONT_DISPLAY, SIZE, WEIGHT} from '../design';
 
 const BAR_HEIGHT = 56;
 const GRID_COLS = 48;
@@ -26,23 +26,23 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   return (
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0, height: BAR_HEIGHT,
-      backgroundColor: MOCHA.mantle + 'ee',
-      borderTop: `1px solid ${MOCHA.surface0}`,
+      backgroundColor: ROLE.surface + 'ee',
+      borderTop: `1px solid ${ROLE.border}`,
       display: 'flex', alignItems: 'center', padding: '0 24px', gap: 20,
-      fontFamily: FONT, fontSize: 16,
+      fontFamily: FONT_DISPLAY, fontSize: SIZE.sm,
     }}>
       <div style={{display: 'flex', gap: 2, flexShrink: 0}}>
         {Array.from({length: GRID_COLS * GRID_ROWS}).map((_, i) => (
           <div key={i} style={{
             width: 6, height: 6, borderRadius: 1,
-            backgroundColor: i < filledCount ? MOCHA.green : MOCHA.surface0,
+            backgroundColor: i < filledCount ? ROLE.accent : ROLE.border,
             transition: 'background-color 0.1s',
           }} />
         ))}
       </div>
 
       {unit && (
-        <div style={{color: MOCHA.subtext0, fontSize: 14, flexShrink: 0}}>
+        <div style={{color: ROLE.textMuted, fontSize: SIZE.xs, flexShrink: 0}}>
           {unit.label}: {Math.floor((progressPct / 100) * unit.total).toLocaleString()}
           {' / '}{unit.total.toLocaleString()}
         </div>
@@ -51,7 +51,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       <div style={{flex: 1}} />
 
       <div style={{
-        color: MOCHA.peach, fontSize: 15, fontWeight: 600,
+        color: ROLE.accent, fontSize: SIZE.xs, fontWeight: WEIGHT.semibold,
         letterSpacing: '0.5px',
       }}>
         {statusText}
