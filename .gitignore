@@ -54,7 +54,11 @@ scripts/build_timeline_manifest.py
 .remotion/src/timeline-data.json
 
 # --- Per-video planning notes ---
+# `progress.md` is this video's todo list / working log -- it belongs to the
+# episode, not the template. Durable lessons get promoted into CLAUDE.md,
+# docs/ or a skill instead of being left here.
 /plan.md
+/progress.md
 plans/*
 !plans/.gitkeep
 

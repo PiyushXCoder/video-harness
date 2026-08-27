@@ -14,7 +14,7 @@ Repo for producing YouTube videos: scripts + asset directories, one project per 
 - `memes/` — meme assets
 - `plans/` — planning docs for videos/features
 - `docs/` — standards: `manim-layout-guidelines.md`, `remotion-video-guidelines.md`
-- `progress.md` — running log of progress
+- `progress.md` — this video's todo list and working log (per-video, gitignored)
 
 ## Machine spec
 
@@ -26,7 +26,8 @@ Always prefer NVIDIA GPU for video processing (encode/decode/render), not Intel 
 
 ## Conventions
 
-- **This repo is a template: only what is generic to *any* video is tracked.** `.gitignore` is the authority and is grouped to say which side of that line each thing falls on. Committed = the engines and the rules (`scripts/`, `.claude/skills/`, `docs/`, `.remotion/src/`, `.manim/scenes/catppuccin.py`, the configs). Ignored = one episode's content (all media dirs, `.manim/scenes/*.py` other than `catppuccin.py`, `scripts/build_timeline_manifest.py`, `.remotion/src/timeline-data.json`, `plan.md`, `plans/*`, `final.*`). When you write something reusable, put it on the tracked side rather than leaving it inside an episode's file.
+- **This repo is a template: only what is generic to *any* video is tracked.** `.gitignore` is the authority and is grouped to say which side of that line each thing falls on. Committed = the engines and the rules (`scripts/`, `.claude/skills/`, `docs/`, `.remotion/src/`, `.manim/scenes/catppuccin.py`, the configs). Ignored = one episode's content (all media dirs, `.manim/scenes/*.py` other than `catppuccin.py`, `scripts/build_timeline_manifest.py`, `.remotion/src/timeline-data.json`, `plan.md`, `progress.md`, `plans/*`, `final.*`). When you write something reusable, put it on the tracked side rather than leaving it inside an episode's file.
+- **`progress.md` is the todo list for the video in flight**, not a permanent record: what is still outstanding, what is done, what is blocked. Create it if absent. It is gitignored, so anything worth keeping past this episode must be **promoted** — a recurring rule goes in CLAUDE.md, a technique goes in `docs/` or the relevant skill. A lesson left only in `progress.md` is lost with the episode.
 - `.manim/` and `.remotion/` hold actual project source (configs, scenes, components); `manim/` and `remotion/` hold their rendered output only.
 - Visual style for generated clips: **Catppuccin Mocha** palette + **Fira Code**. `.manim/scenes/catppuccin.py` holds the 26 official Mocha hex values (verified against `catppuccin/palette` `palette.json` and catppuccin.com/palette), a `MochaScene` base class, the `CodeClip` base for code clips, and `component()` / `link()` / `clamp_to_frame()` helpers. Import from it rather than hardcoding colors. Mocha is a DARK theme — `background_color` in `.manim/manim.cfg` is `#1e1e2e` (base).
 - **Source of truth for technical content: `/home/piyush/Projects/dhaar-torrent`** (the Rust/Tokio torrent client this series is about). Check component names, topology and constants against its `README.md` "Architecture" section and `src/` tree — the narration alone is not reliable (it never mentions `request_manager`, and calls `PieceWriter` a "disk writer").
