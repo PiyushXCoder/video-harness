@@ -1,11 +1,11 @@
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import {FONT_DISPLAY, WEIGHT, SHADOW, resolveColor, glow} from '../design';
+import {FONT_DISPLAY, WEIGHT, TYPE, SHADOW, resolveColor, glow} from '../design';
 
 interface Props {
   words: string[];
   color?: string;
-  size?: number;
+  size?: number | null;
   durationInFrames: number;
 }
 
@@ -27,9 +27,10 @@ interface Props {
  * manifest builder rejects that), so the two text layers can't stack.
  */
 export const PunchText: React.FC<Props> = ({
-  words, color = 'text', size = 56, durationInFrames,
+  words, color = 'text', size, durationInFrames,
 }) => {
   const frame = useCurrentFrame();
+  const fontSize = size ?? TYPE.punch.size;
   const {fps} = useVideoConfig();
   const hex = resolveColor(color);
 
@@ -60,7 +61,7 @@ export const PunchText: React.FC<Props> = ({
 
         return (
           <span key={i} style={{
-            fontFamily: FONT_DISPLAY, fontSize: size, fontWeight: WEIGHT.bold,
+            fontFamily: FONT_DISPLAY, fontSize, fontWeight: WEIGHT.bold,
             color: hex, opacity,
             transform: `scale(${interpolate(progress, [0, 1], [0.75, 1])})`,
             display: 'inline-block',

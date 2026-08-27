@@ -305,7 +305,9 @@ def build_segment(seg):
             "text": s["text"],
             "fromFrame": frames(s["fromSec"]),
             "color": s.get("color", "text"),
-            "size": s.get("size", 140),
+            # None -> the component uses TYPE.stamp.size from design.ts.
+            # Injecting a default here would override DESIGN.md silently.
+            "size": s.get("size"),
         })
     if seg.get("kineticText"):
         sys.exit(
@@ -324,7 +326,7 @@ def build_segment(seg):
             "durationInFrames": frames(pt.get("holdSec", 2.2)),
             "words": pt["words"],
             "color": pt.get("color", "text"),
-            "size": pt.get("size", 56),
+            "size": pt.get("size"),  # None -> TYPE.punch.size
         })
     bt = seg.get("bootTerminal")
     if bt:

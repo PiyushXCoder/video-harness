@@ -267,7 +267,7 @@ def build_beat(beat):
             "durationInFrames": max(frames(hold), 1),
             "words": _words(t.get("words", t.get("text", ""))),
             "color": t.get("color", "text"),
-            "size": t.get("size", 72),
+            "size": t.get("size"),  # None -> TYPE.hookTitle.size
             "anchor": anchor,
         })
 
@@ -316,7 +316,7 @@ def build_beat(beat):
             "text": s["text"],
             "fromFrame": frames(s["fromSec"]),
             "color": s.get("color", "text"),
-            "size": s.get("size", 140),
+            "size": s.get("size"),  # None -> TYPE.stamp.size
         }
         for s in beat.get("stamps", [])
     ]
@@ -431,7 +431,7 @@ STUB = {
             "texts": [{
                 "fromFrame": 0, "durationInFrames": 90,
                 "words": ["STUB", "HOOK", "--", "run", "build_hook_manifest.py"],
-                "color": "peach", "size": 72, "anchor": "center",
+                "color": "accent", "size": None, "anchor": "center",
             }],
             "cutawaySafe": True,
             "rulesSuspended": ["centre-frame (no speaker in a stub)"],
@@ -446,7 +446,7 @@ STUB = {
             "texts": [{
                 "fromFrame": 0, "durationInFrames": 90,
                 "words": ["second", "beat"],
-                "color": "teal", "size": 56, "anchor": "lower-third",
+                "color": "info", "size": None, "anchor": "lower-third",
             }],
             "cutawaySafe": True,
             "rulesSuspended": [],

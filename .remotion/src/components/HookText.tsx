@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
 import type {HookTextData} from '../hook';
-import {ROLE, FONT_DISPLAY, WEIGHT, resolveColor} from '../design';
+import {ROLE, FONT_DISPLAY, WEIGHT, TYPE, resolveColor} from '../design';
 
 const WORD_STAGGER = 3; // frames between words -- same cadence as PunchText
 const FADE_IN = 8;
@@ -30,11 +30,12 @@ const ANCHORS: Record<HookTextData['anchor'], React.CSSProperties> = {
 export const HookText: React.FC<{
   words: string[];
   color?: string;
-  size?: number;
+  size?: number | null;
   anchor?: HookTextData['anchor'];
   durationInFrames: number;
-}> = ({words, color = 'text', size = 72, anchor = 'center', durationInFrames}) => {
+}> = ({words, color = 'text', size, anchor = 'center', durationInFrames}) => {
   const frame = useCurrentFrame();
+  const fontSize = size ?? TYPE.hookTitle.size;
   // The manifest carries a DESIGN.md ROLE name ('accent'), not a hex
   // value -- same contract as Stamp/PunchText. Fall through to the literal
   // so a raw hex still works.
@@ -60,7 +61,7 @@ export const HookText: React.FC<{
           maxWidth: 1600,
           padding: '0 48px',
           fontFamily: FONT_DISPLAY,
-          fontSize: size,
+          fontSize,
           fontWeight: WEIGHT.bold,
           lineHeight: 1.2,
           color: hex,

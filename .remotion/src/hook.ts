@@ -61,7 +61,7 @@ export type HookTextData = {
   durationInFrames: number;
   words: string[];
   color: string;
-  size: number;
+  size?: number | null;
   anchor: 'top' | 'center' | 'lower-third' | 'bottom';
 };
 

@@ -1,11 +1,11 @@
 import React from 'react';
 import {spring, useCurrentFrame, useVideoConfig, interpolate} from 'remotion';
-import {ROLE, FONT_DISPLAY, WEIGHT, SHADOW, resolveColor, glow} from '../design';
+import {ROLE, FONT_DISPLAY, WEIGHT, TYPE, SHADOW, resolveColor, glow} from '../design';
 
 interface Props {
   text: string;
   color?: string;
-  size?: number;
+  size?: number | null;
 }
 
 // A talking-head shot keeps the face roughly centered top-to-bottom -- a
@@ -17,9 +17,11 @@ const BANNER_TOP = '15%';
 export const Stamp: React.FC<Props> = ({
   text,
   color = 'text',
-  size = 140,
+  size,
 }) => {
   const frame = useCurrentFrame();
+  // null/undefined -> the design token, so DESIGN.md owns the size.
+  const fontSize = size ?? TYPE.stamp.size;
   const {fps} = useVideoConfig();
   const hex = resolveColor(color);
 
@@ -46,7 +48,7 @@ export const Stamp: React.FC<Props> = ({
       <div style={{
         position: 'absolute', top: BANNER_TOP, left: '50%',
         transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotate + shake}deg)`,
-        fontFamily: FONT_DISPLAY, fontSize: size, fontWeight: WEIGHT.bold,
+        fontFamily: FONT_DISPLAY, fontSize, fontWeight: WEIGHT.bold,
         color: hex, opacity: exitOpacity,
         textShadow: `${glow(hex, 80, 'aa')}, ${glow(hex)}, ${SHADOW.textHeavy}`,
         textTransform: 'uppercase',

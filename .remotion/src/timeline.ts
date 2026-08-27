@@ -26,7 +26,9 @@ export type StampData = {
   text: string;
   fromFrame: number;
   color: string;
-  size: number;
+  // null/absent means "use the design token". The manifest builder does not
+  // inject a default, so DESIGN.md stays the single source for the size.
+  size?: number | null;
 };
 
 export type EmojiData = {
@@ -72,7 +74,7 @@ export type PunchTextData = {
   durationInFrames: number;
   words: string[];
   color: string;
-  size: number;
+  size?: number | null;
 };
 
 export type BootTerminalData = {
