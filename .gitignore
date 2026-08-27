@@ -27,6 +27,9 @@ remotion/*
 reels/*
 shorts/*
 images/*
+# video_clips/ is DELIBERATELY ABSENT from this list: it is tracked, so a
+# short clip handed over by hand travels with the repo. See CLAUDE.md.
+# Binaries in git history are permanent -- keep them small.
 !*/.gitkeep
 
 # --- Finished renders at the repo root (final.mp4 / .mkv / .srt) ---
