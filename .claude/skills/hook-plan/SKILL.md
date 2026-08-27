@@ -13,6 +13,36 @@ Do not use this skill to design a hook from scratch on the user's behalf. If the
 have not said what they want the opening to do, ask — a hook assembled from your
 taste rather than theirs is the failure mode here.
 
+## Read DESIGN.md before planning the hook
+
+The hook is the one place the design system is deliberately **bent**, which means
+you have to know precisely what you are bending. Cite section numbers in
+`## Rule breaks`: *"suspends §10.5 (centre) — no speaker in beats 1–2"* is
+actionable; *"breaks the layout rules"* is not.
+
+**Suspendable — editorial choices the plan may overturn:**
+
+| rule | why the hook may break it |
+|---|---|
+| §10.5 the centre rule | `DESIGN.md` itself grants the exception: a beat with no speaker has nothing to protect, and a title belongs at centre |
+| §7 / §10.4 the three text layers and their fixed zones | a montage or kinetic-type hook needs treatments the body has no use for |
+| cutaway safety | the hook may lay type over a montage shot — set `cutawaySafe: false` on that beat, per beat |
+
+**Not suspendable — these are physics, not taste, and the build enforces them:**
+
+| rule | why not |
+|---|---|
+| §10.3 legibility — a scrim or heavy shadow under every text | contrast over footage is never guaranteed. A hook that cannot be read is not a hook |
+| §10.6 minimum shot, 45 frames | under ~15 frames reads as a glitch. `check_min_shot()` fails the build |
+| §10.8 text never appears before its words are spoken | `check_text_not_early()` fails the build |
+| the palette itself | a hook in different colours is a different video, not a bolder one |
+| 2048×1280, never scale a source | rescaling softens every monospace glyph |
+
+**Section 10 overrides section 3's web-scaled sizes**; section 8 does not apply.
+Everything `DESIGN.md` specifies is encoded in `.remotion/src/design.ts` — the
+plan names semantic **roles** (`accent`, `warning`, `info`), never hex codes, and
+**never a size**: omit it and the component uses its token.
+
 ## Workflow
 
 1. **Transcribe the hook take, from `raw/initial/`.**
@@ -76,13 +106,12 @@ taste rather than theirs is the failure mode here.
    no beat under **45 frames (1.5 s)** and the whole hook under **45 s**; both
    are build failures in `scripts/hook_lib.py`, not suggestions.
 
-6. **Decide explicitly which body rules the hook suspends**, and record why. The
-   body reserves frame centre for the speaker's face, allows only three text
-   layers in fixed zones, and never draws over a cutaway. A hook with no speaker
-   has no reason to obey the first. A hook that is a montage may want type over
-   footage. These are legitimate choices when they are *choices* — write them
-   into `## Rule breaks` so `hook-build` can set `rulesSuspended` and the
-   decision is visible in the data rather than implicit in the output.
+6. **Decide explicitly which rules the hook suspends**, from the suspendable list
+   above only, and record why with the section number. These are legitimate
+   choices when they are *choices* — write them into `## Rule breaks` so
+   `hook-build` can set `rulesSuspended` and the decision is visible in the data
+   rather than implicit in the output. If the hook seems to need something on the
+   not-suspendable list, the beat is wrong, not the rule.
 
 7. **Write `plans/hook.md`** with every section below. `hook-build` refuses to
    run if one is missing, so do not leave a placeholder heading empty — say
@@ -93,7 +122,7 @@ taste rather than theirs is the failure mode here.
    | `## Intent` | one sentence: what the viewer should feel or want to know by 0:30 |
    | `## Hook type` | dedicated take / cold-open montage / motion graphics / mix |
    | `## Duration target` | seconds, and the acceptable band |
-   | `## Rule breaks` | each suspended body rule, with its reason |
+   | `## Rule breaks` | each suspended rule **by `DESIGN.md` section number**, with its reason. Only the suspendable ones above |
    | `## Assets` | role \| path \| notes — footage only |
    | `## Beats` | # \| duration \| source (+ in/out) \| on screen \| audio \| note |
    | `## Raw handling` | which pauses are load-bearing, which takes to drop, where it splits |

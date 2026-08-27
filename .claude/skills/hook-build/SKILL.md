@@ -10,8 +10,33 @@ seconds *is*; this one realises it and **invents nothing**. Every creative choic
 comes from `plans/hook.md`; every mechanical choice — split points, encode flags,
 frame numbers — is derived here.
 
-Read `plans/hook.md` first. Read `docs/remotion-video-guidelines.md` for anything
-the hook does not explicitly suspend.
+## Read before building
+
+**`plans/hook.md`** — the authority on this hook.
+
+**`DESIGN.md`** — the design authority, for everything the plan does not
+explicitly suspend. Section 10 overrides section 3's web-scaled sizes; section 8
+does not apply. `plans/hook.md`'s `## Rule breaks` names the sections it bends;
+everything not named there still holds, and the ones on its not-suspendable list
+cannot be bent at all — legibility, minimum shot, text-not-early, the palette.
+
+**`docs/remotion-video-guidelines.md`** — the composition standard.
+
+Everything `DESIGN.md` specifies is encoded in `.remotion/src/design.ts`. The
+hook manifest you write in step 4 is a design consumer:
+
+- **colours are ROLE NAMES** (`accent`, `warning`, `info`, `text_muted`), never
+  hex codes. `resolveColor()` accepts a hex, so a hardcoded one renders perfectly
+  and then silently stops tracking `DESIGN.md` — invisible until someone
+  re-themes and the hook stays put while the body moves.
+- **pass no `size`.** Omit it and the component uses its token. The builder
+  injects no default on purpose: stamp size lived in three places at once until
+  that was fixed, and a size in the plan re-creates the fork.
+- `rulesSuspended` carries the plan's reasons *with their section numbers*, so
+  the bend is visible in the data rather than implicit in the output.
+
+`python3 scripts/check_design.py` covers `scripts/build_hook_manifest.py`, so a
+hex in the plan fails the build rather than shipping.
 
 ## Workflow
 
@@ -137,9 +162,18 @@ the hook does not explicitly suspend.
      -af ebur128=peak=true -f null - 2>&1 | grep -A2 'Integrated\|Peak'
    ```
 
+   Run the design lint too — instant, and a stray hex renders perfectly so the
+   eye will not catch it:
+
+   ```bash
+   python3 scripts/check_design.py
+   ```
+
    Extract a frame at every beat boundary and look for text landing on a face,
-   an overlay covering something being read, and a beat that renders black
-   because its source window fell outside the file.
+   an overlay covering something being read, a beat that renders black because
+   its source window fell outside the file, and **text with no scrim or shadow
+   under it** — §10.3 is not suspendable and it is the defect a small preview
+   hides.
 
 7. **Report** the beat list with real durations, the total against the plan's
    target, which rules ended up suspended, and anything the plan asked for that
