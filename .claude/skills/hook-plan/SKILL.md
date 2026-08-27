@@ -128,4 +128,10 @@ choice survives to the timeline.
   Anything learned here that applies to *every* video belongs in `CLAUDE.md`, in
   `docs/`, or in this skill — not left in `plans/hook.md` to die with the episode.
 - The hook is a separate Remotion composition (`Hook`), not part of `FinalVideo`.
-  Prepending it to the body is deliberately not wired up yet.
+  `combine-all` joins it to the body at the end. Keeping it separate is what lets
+  it break the body's rules without those freedoms leaking into the body.
+- **The body is planned first**, by `main-plan`. Read `plans/main.md` and check
+  the promise against it — the hook advertises what the body contains, and a
+  promise the video never keeps is the one failure that costs subscribers rather
+  than views. If `plans/main.md` does not exist yet, say so: planning the hook
+  first means committing to a payoff the body has not been shaped around.

@@ -83,8 +83,9 @@ freeze-frame or a truncated clip, and neither is obvious in the studio preview.
 - **Cut on speech boundaries.** The `.srt` cue times in `processed/` are the
   authority — parse them rather than eyeballing. Never cut mid-word.
 - **Let a beat land.** Hold ~10 frames after a punchline before the next segment.
-- **Code needs reading time.** 2.5 s + 0.3 s per line, the same rule
-  `CodeClip` (in `.manim/scenes/catppuccin.py`) uses. 27 lines of Rust wants ~12 s, not 3.
+- **Code needs reading time.** 2.5 s + 0.3 s per line. 27 lines of Rust wants
+  ~12 s, not 3. Keep a snippet under ~28 lines; past that the type shrinks
+  below readability at this delivery size.
 
 ---
 
@@ -279,11 +280,20 @@ npm i @remotion/transitions @remotion/media-utils
 # preview
 npx remotion studio
 
-# final, on the GPU
-npx remotion render FinalVideo ../processed/final.mp4 \
+# the body, on the GPU (the hook is a separate composition)
+npx remotion render FinalVideo out/body.mp4 \
+    --hardware-acceleration=required \
+    --concurrency=6
+
+# the hook
+npx remotion render Hook out/hook.mp4 \
     --hardware-acceleration=required \
     --concurrency=6
 ```
+
+The delivered `final.mp4` is hook + body joined by the `combine-all` skill, which
+also builds `.remotion/out/final.srt` with every body cue offset by the hook's
+real duration.
 
 - **`--hardware-acceleration=required` for the real export.** Remotion's bundled
   FFmpeg has **NVENC on Linux x64**, for **h264/h265 only** — any other codec

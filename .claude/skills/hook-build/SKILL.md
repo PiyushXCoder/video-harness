@@ -161,8 +161,12 @@ the hook does not explicitly suspend.
 
 ## Notes
 
-- The hook is the `Hook` composition, separate from `FinalVideo`. Prepending it
-  to the body is deliberately **not** wired up yet.
+- The hook is the `Hook` composition, separate from `FinalVideo`. `combine-all`
+  joins the two and builds the master `.srt`, offsetting every body cue by the
+  hook's real duration — so **re-cut the hook and you must rebuild that `.srt`**,
+  or every subtitle in the body is late. Keeping the hook separate is what lets it
+  break the body's rules without those freedoms leaking into the body.
+- The body is built separately by `main-plan` → `main-build`.
 - `check_no_repeated_gifs()` polices the body's manifest only. A gif used in both
   the hook and the body will not be caught automatically — check by hand until
   the two manifests are validated together.

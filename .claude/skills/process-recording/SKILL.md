@@ -40,7 +40,7 @@ Two-stage pipeline, both stages GPU-accelerated:
    ```
    Read a generated `.srt` and check the transcript actually reads as sentences — a garbled one usually means the wrong `--noise` floor let dead air through, not a whisper problem.
 
-6. **Report**: per-clip raw → processed duration, total silence removed, cue counts. Mention that final assembly happens in Remotion (see the `final-video` skill), and that the `.srt` cue times are what the assembly uses to cut on speech boundaries and duck the music bed.
+6. **Report**: per-clip raw → processed duration, total silence removed, cue counts. Mention that planning comes next (`main-plan`) and that final assembly happens in Remotion (`main-build`, then `combine-all`), and that the `.srt` cue times are what the assembly uses to cut on speech boundaries and duck the music bed.
 
 ## Tuning stage 1
 

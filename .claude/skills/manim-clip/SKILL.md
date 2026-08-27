@@ -113,4 +113,4 @@ note was never passed to the audit. Pass **everything** visible, and run
 - Re-running a render reuses Manim's cache for unchanged animations.
 - Naming a spacing/style constant after a Manim export shadows it. A constant called `NORMAL` silently turned `weight=NORMAL` into `weight=0.42`; hence the `GAP_` prefix.
 - `DashedVMobject` keeps its dashes as submobjects and has no points itself, so `get_start()`/`get_end()` throw on a dashed arrow. `link()` records `layout_start`/`layout_end`; read them via `endpoints(arrow)`.
-- For a clip that shows source code, use the `code-clip` skill instead.
+- For a clip that shows source code — or any non-mathematical visual (chart, diagram, title card, kinetic type) — use `remotion-clip` instead. Manim is for mathematical animation only.

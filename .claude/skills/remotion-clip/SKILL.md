@@ -45,6 +45,46 @@ Remotion project source lives in `.remotion/` (React + TypeScript, deps already 
 
 6. **Report** the final path and duration (`ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 remotion/<clip_name>.mp4`) back to the user.
 
+## Code clips
+
+Code on screen is Remotion's job — Manim is for mathematical animation only
+(`CLAUDE.md`). The rules that used to live in the deleted `code-clip` skill:
+
+- **Every character must be real source** from the implementation repo (this
+  series: `/home/piyush/Projects/dhaar-torrent`). Read the file, copy the lines,
+  mark anything removed with `// ...`. Never retype from memory and never write
+  plausible-looking code — pasted source reads as authority, and invented code a
+  viewer can't find in the repo undermines the whole video. If the user asks for
+  something the code doesn't do, say so instead of inventing it. Trimming is fine
+  and usually necessary (dropping error branches, collapsing an argument list);
+  changing semantics is not.
+- **Cite the origin file on screen** (`src/piece_manager/mod.rs`) so a viewer can
+  find it.
+- **Under ~28 lines.** Past that the type shrinks below readability at 2048×1280.
+- **Reading time is the point:** hold 2.5 s + 0.3 s per line. 27 lines of Rust
+  wants ~12 s, not the 3 s a default duration gives.
+- **Verify bracket balance before rendering** — a stray bracket once put broken
+  code on screen here:
+  ```bash
+  python3 - <<'PY'
+  import re, pathlib, sys
+  body = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "/dev/stdin").read_text()
+  s = re.sub(r'//.*', '', re.sub(r'/\*.*?\*/', '', body, flags=re.S))
+  for o, c in (("(", ")"), ("{", "}"), ("[", "]")):
+      print(o + c, "ok" if s.count(o) == s.count(c) else f"UNBALANCED {s.count(o)}/{s.count(c)}")
+  PY
+  ```
+  Then diff what you pasted against the original by eye.
+- **Highlighting must match** the Mocha values in `.remotion/src/palette.ts`
+  (keywords mauve, strings green, comments overlay2, constants peach, operators
+  sky). Shiki ships a Catppuccin Mocha theme; add a highlighter to `.remotion/`
+  if the clip needs one rather than assuming one is installed.
+- **Ligatures are safe here.** The old Manim path banned Fira Code on code blocks
+  because its `//` ligature desynced Manim's per-character glyph mapping and
+  crashed `Code()` with `IndexError` in `_gen_chars`. Remotion renders text in
+  Chromium with no such mapping, so `FONT` from `palette.ts` is fine and `->` /
+  `==` render as intended. This is one of the reasons code clips moved.
+
 ## Notes
 
 - Remotion renders via headless Chromium — compositing itself can use GPU (Chromium's own rasterizer), but the final encode is Remotion's bundled x264 (CPU), not NVENC. This project's "prefer NVIDIA GPU" rule (see `CLAUDE.md`) doesn't cleanly apply to Remotion's render step; if you need a GPU re-encode afterward, run the published clip back through `scripts/process_recording.py`-style ffmpeg NVENC settings.
