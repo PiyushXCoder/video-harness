@@ -33,12 +33,12 @@ images/*
 /final.*
 
 # --- Per-video Manim scenes ---
-# `catppuccin.py` is the shared library: palette, MochaScene, CodeClip,
+# `design.py` is the shared library: DESIGN.md's palette and roles, DesignScene,
 # layout regions, spacing scale, audit_layout. Every other scene file is
 # one episode's diagrams and snippets -- write fresh ones per video.
 .manim/scenes/*
 !.manim/scenes/.gitkeep
-!.manim/scenes/catppuccin.py
+!.manim/scenes/design.py
 
 # --- Per-video editorial plan ---
 # Names this episode's actual clips, gifs, punch lines and emoji, so it is

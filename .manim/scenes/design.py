@@ -1,49 +1,105 @@
-"""Catppuccin Mocha palette + shared scene furniture for this project's clips.
+"""The Manim half of DESIGN.md: palette, roles, and shared scene furniture.
 
-Palette values are the official ones from catppuccin/palette (palette.json),
-cross-checked against https://catppuccin.com/palette/. Mocha is the DARK
-flavour — `base` is the background, `text` is the foreground.
+HAND-AUTHORED, NOT GENERATED. DESIGN.md is prose because a design system is
+judgement -- "the accent is functional, never decorative", "the content supplies
+the colour" -- and none of that survives a token extractor. This module is what
+an agent writes after READING DESIGN.md.
 
-Semantic roles follow the Catppuccin style guide:
-  base            page background          mantle/crust  secondary panes
-  text            body copy + headlines    subtext0/1    sub-headlines
-  overlay1        de-emphasised content    surface0-2    hierarchy / borders
-  blue            links, interactive       green         success
-  yellow          warnings                 red           errors
-  mauve           keywords                 peach         constants
+Every colour and size in a generated clip comes from here. A scene never names a
+hex; scripts/check_design.py fails the build if one does. Change DESIGN.md ->
+change this file (and .remotion/src/design.ts) -> re-render. There is no third
+place to look.
+
+Semantic roles (DESIGN.md section 2, section 10.7):
+  bg          frame background         surface/elevated  raised panes
+  text        body copy + headlines    text_muted        sub-headlines, captions
+  text_faint  de-emphasised content    border            hierarchy / outlines
+  accent      state, success, the      warning           warnings
+              component under          error             errors
+              discussion -- FUNCTIONAL  info              data, links
+              ONLY, never decorative
+
+Manim is the MATHEMATICAL engine only (CLAUDE.md): plots of functions,
+equations, geometric arguments. Charts of measured data, diagrams, title cards
+and code go to Remotion.
 """
 
 import numpy as np
 
 from manim import *
 
-MOCHA = {
-    "rosewater": "#f5e0dc",
-    "flamingo": "#f2cdcd",
-    "pink": "#f5c2e7",
-    "mauve": "#cba6f7",
-    "red": "#f38ba8",
-    "maroon": "#eba0ac",
-    "peach": "#fab387",
-    "yellow": "#f9e2af",
-    "green": "#a6e3a1",
-    "teal": "#94e2d5",
-    "sky": "#89dceb",
-    "sapphire": "#74c7ec",
-    "blue": "#89b4fa",
-    "lavender": "#b4befe",
-    "text": "#cdd6f4",
-    "subtext1": "#bac2de",
-    "subtext0": "#a6adc8",
-    "overlay2": "#9399b2",
-    "overlay1": "#7f849c",
-    "overlay0": "#6c7086",
-    "surface2": "#585b70",
-    "surface1": "#45475a",
-    "surface0": "#313244",
-    "base": "#1e1e2e",
-    "mantle": "#181825",
-    "crust": "#11111b",
+# ── Palette (DESIGN.md section 2) ───────────────────────────────────────
+# Named as the design system names them. Scenes should use ROLE, not this.
+PALETTE = {
+    "near_black": "#121212",
+    "dark_surface": "#181818",
+    "mid_dark": "#1f1f1f",
+    "dark_card": "#252525",
+    "green": "#1ed760",
+    "green_border": "#1db954",
+    "white": "#ffffff",
+    "silver": "#b3b3b3",
+    "near_white": "#cbcbcb",
+    "negative_red": "#f3727f",
+    "warning_orange": "#ffa42b",
+    "announcement_blue": "#539df5",
+    "border_gray": "#4d4d4d",
+    "light_border": "#7c7c7c",
+    "black": "#000000",
+}
+
+# Semantic roles -- THIS is what scenes use. Mirrors .remotion/src/design.ts so
+# a generated clip and the composition around it cannot disagree.
+# `accent` is the only non-achromatic role in normal use: the content supplies
+# the colour (DESIGN.md section 10.7).
+ROLE = {
+    "bg": PALETTE["near_black"],
+    "surface": PALETTE["dark_surface"],
+    "surface_alt": PALETTE["mid_dark"],
+    "elevated": PALETTE["dark_card"],
+    "border": PALETTE["border_gray"],
+    "border_muted": PALETTE["light_border"],
+    "text": PALETTE["white"],
+    "text_muted": PALETTE["silver"],
+    "text_faint": PALETTE["light_border"],
+    "accent": PALETTE["green"],
+    "accent_border": PALETTE["green_border"],
+    "success": PALETTE["green"],
+    "warning": PALETTE["warning_orange"],
+    "error": PALETTE["negative_red"],
+    "info": PALETTE["announcement_blue"],
+    "scrim": PALETTE["black"],
+}
+
+# Code highlighting (DESIGN.md section 10.9). The one place the system needs
+# more than one hue -- every value here is a colour section 2 already declares.
+SYNTAX = {
+    "background": ROLE["surface"],
+    "keyword": ROLE["accent"],
+    "string": ROLE["info"],
+    "number": ROLE["warning"],
+    "type": ROLE["text"],
+    "function": PALETTE["near_white"],
+    "operator": ROLE["text_muted"],
+    "comment": ROLE["text_faint"],
+    "error": ROLE["error"],
+}
+
+# ── Type scale (DESIGN.md 10.2), in MANIM SCENE UNITS where relevant ────
+# Manim font_size is already a point-like scalar, so these are the scene's own
+# scale rather than the composition's px. PX_PER_UNIT converts a DESIGN.md px
+# value to scene units: 1280 px tall over a frame height of 8.0 units.
+PX_PER_UNIT = 160.0
+
+
+def px(value):
+    """A DESIGN.md pixel value in Manim scene units."""
+    return value / PX_PER_UNIT
+
+
+SIZE = {
+    "xs": 14, "sm": 16, "base": 20, "md": 24, "lg": 28,
+    "xl": 32, "xxl": 52, "hero": 56,
 }
 
 FONT = "Fira Code"
@@ -157,7 +213,7 @@ def stack(*mobs, gap=GAP_XL):
 
 def attach_label(parent, txt, side=DOWN, gap=GAP_SM, size=19, color=None):
     """Make a label a CHILD of its object so it can never drift (S11)."""
-    lbl = Text(txt, font=FONT, font_size=size, color=color or MOCHA["subtext0"])
+    lbl = Text(txt, font=FONT, font_size=size, color=color or ROLE["text_muted"])
     lbl.next_to(parent, side, buff=gap)
     return VGroup(parent, lbl)
 
@@ -317,16 +373,16 @@ def pop_out(mob, run_time=0.2, lag_ratio=None):
     return ShrinkToCenter(mob, **kwargs)
 
 
-class MochaScene(Scene):
-    """Scene with the Mocha background and Fira Code defaults applied."""
+class DesignScene(Scene):
+    """Scene with DESIGN.md's background and display font applied."""
 
     def setup(self):
         super().setup()
-        self.camera.background_color = MOCHA["base"]
+        self.camera.background_color = ROLE["bg"]
 
     def label(self, txt, size=26, color=None, weight=NORMAL):
         return Text(txt, font=FONT, font_size=size,
-                    color=color or MOCHA["text"], weight=weight)
+                    color=color or ROLE["text"], weight=weight)
 
     def title(self, txt, size=34):
         t = self.label(txt, size=size, weight=BOLD)
@@ -334,19 +390,19 @@ class MochaScene(Scene):
         return t
 
     def caption(self, txt, size=20):
-        return self.label(txt, size=size, color=MOCHA["subtext0"])
+        return self.label(txt, size=size, color=ROLE["text_muted"])
 
 
-def component(name, accent, sub=None, width=2.9, height=1.0, font_size=24):
+def component(name, accent, sub=None, width=2.9, height=1.0, font_size=SIZE["md"]):
     """A labelled box: accent-tinted fill, accent border, Latte `text` label."""
     box = RoundedRectangle(
         corner_radius=0.14, width=width, height=height,
         stroke_color=accent, stroke_width=2.5,
         fill_color=accent, fill_opacity=0.12,
     )
-    lines = VGroup(Text(name, font=FONT, font_size=font_size, color=MOCHA["text"]))
+    lines = VGroup(Text(name, font=FONT, font_size=font_size, color=ROLE["text"]))
     if sub:
-        lines.add(Text(sub, font=FONT, font_size=font_size - 7, color=MOCHA["subtext0"]))
+        lines.add(Text(sub, font=FONT, font_size=font_size - 7, color=ROLE["text_muted"]))
         lines.arrange(DOWN, buff=0.11)
     # Never let a label touch its border: Fira Code is monospace, so a long name
     # outgrows a fixed-width box quickly. Scale down to fit rather than clipping.
@@ -366,7 +422,7 @@ def link(a, b, color=None, dashed=False, both=False, buff=0.10, width=3.0):
         a.get_boundary_point(normalize(b.get_center() - a.get_center())),
         b.get_boundary_point(normalize(a.get_center() - b.get_center())),
         buff=buff, stroke_width=width,
-        color=color or MOCHA["overlay1"],
+        color=color or ROLE["text_faint"],
         max_tip_length_to_length_ratio=0.12,
         tip_length=0.2,
     )
@@ -399,7 +455,7 @@ def clamp_to_frame(mob, pad=0.25):
 
 
 def edge_label(txt, mob, size=17, color=None, shift=UP * 0.22):
-    t = Text(txt, font=FONT, font_size=size, color=color or MOCHA["overlay2"])
+    t = Text(txt, font=FONT, font_size=size, color=color or ROLE["text_faint"])
     t.move_to(mob.get_center() + shift)
     return t
 
@@ -480,12 +536,18 @@ def audit_layout(named, max_overlap=0.03, allow=(), connections=(),
 
 
 # --- Syntax highlighting -----------------------------------------------------
-# Catppuccin publishes code-editor roles in its style guide: keywords mauve,
+# DESIGN.md section 10.9 defines the code-editor roles: keywords accent,
 # strings green, comments overlay2, constants peach, operators sky. Pygments has
-# no Catppuccin style, so register one rather than settle for an approximate
+# no style for this design system, so register one rather than settle for an approximate
 # light theme -- Code() then matches the rest of the clip exactly.
 
-def _register_pygments_style(name="catppuccin-mocha"):
+def _register_pygments_style(name="design-dark"):
+    """Register DESIGN.md section 10.9 as a pygments style.
+
+    Colour only, never italic or bold: Manim's Code char-generation miscounts
+    glyphs when a pygments style applies a font style, and dies with
+    "IndexError: list index out of range" in _gen_chars.
+    """
     import sys
     import types
 
@@ -494,37 +556,34 @@ def _register_pygments_style(name="catppuccin-mocha"):
                                 Punctuation, String, Token)
     from pygments.style import Style
 
-    class CatppuccinMochaStyle(Style):
-        background_color = MOCHA["mantle"]
+    class DesignDarkStyle(Style):
+        background_color = SYNTAX["background"]
         styles = {
-            Token: MOCHA["text"],
-            # Colour only, no italic/bold: Manim's Code char-generation miscounts
-            # glyphs when a pygments style applies a font style, and dies with
-            # "IndexError: list index out of range" in _gen_chars.
-            Comment: MOCHA["overlay2"],
-            Keyword: MOCHA["mauve"],
-            Keyword.Type: MOCHA["yellow"],
-            Name: MOCHA["text"],
-            Name.Function: MOCHA["blue"],
-            Name.Class: MOCHA["yellow"],
-            Name.Namespace: MOCHA["yellow"],
-            Name.Builtin: MOCHA["red"],
-            Name.Builtin.Pseudo: MOCHA["red"],
-            Name.Attribute: MOCHA["blue"],
-            Name.Decorator: MOCHA["peach"],
-            String: MOCHA["green"],
-            String.Escape: MOCHA["pink"],
-            Number: MOCHA["peach"],
-            Operator: MOCHA["sky"],
-            Punctuation: MOCHA["overlay2"],
-            Error: MOCHA["red"],
+            Token: ROLE["text"],
+            Comment: SYNTAX["comment"],
+            Keyword: SYNTAX["keyword"],
+            Keyword.Type: SYNTAX["type"],
+            Name: ROLE["text"],
+            Name.Function: SYNTAX["function"],
+            Name.Class: SYNTAX["type"],
+            Name.Namespace: SYNTAX["type"],
+            Name.Builtin: SYNTAX["keyword"],
+            Name.Builtin.Pseudo: SYNTAX["keyword"],
+            Name.Attribute: SYNTAX["function"],
+            Name.Decorator: SYNTAX["number"],
+            String: SYNTAX["string"],
+            String.Escape: SYNTAX["number"],
+            Number: SYNTAX["number"],
+            Operator: SYNTAX["operator"],
+            Punctuation: SYNTAX["operator"],
+            Error: SYNTAX["error"],
         }
 
-    module_name = "catppuccin_mocha_pygments"
+    module_name = "design_dark_pygments"
     module = types.ModuleType(module_name)
-    module.CatppuccinMochaStyle = CatppuccinMochaStyle
+    module.DesignDarkStyle = DesignDarkStyle
     sys.modules[module_name] = module
-    pstyles._STYLE_NAME_TO_MODULE_MAP[name] = (module_name, "CatppuccinMochaStyle")
+    pstyles._STYLE_NAME_TO_MODULE_MAP[name] = (module_name, "DesignDarkStyle")
     if hasattr(pstyles, "STYLE_MAP"):
         pstyles.STYLE_MAP[name] = module_name
     return name
@@ -546,9 +605,9 @@ def code_block(source, language="rust", size=17, width=None, line_numbers=False)
         add_line_numbers=line_numbers,
         background="rectangle",
         background_config={
-            "stroke_color": MOCHA["surface1"],
+            "stroke_color": ROLE["border"],
             "stroke_width": 2.0,
-            "fill_color": MOCHA["mantle"],
+            "fill_color": ROLE["surface"],
             "fill_opacity": 1.0,
             "corner_radius": 0.12,
         },
@@ -559,7 +618,7 @@ def code_block(source, language="rust", size=17, width=None, line_numbers=False)
     return block
 
 
-class CodeClip(MochaScene):
+class CodeClip(DesignScene):
     """Base for a one-snippet code clip: title, block, origin line, caption.
 
     Subclasses set the four class attributes and nothing else, so every code
@@ -578,7 +637,7 @@ class CodeClip(MochaScene):
 
         block = code_block(self.SOURCE, width=CONTENT_REGION.width - 1.2)
         origin = self.caption(self.ORIGIN, size=16)
-        caption = self.label(self.CAPTION, size=21, color=MOCHA["subtext1"])
+        caption = self.label(self.CAPTION, size=21, color=ROLE["text_muted"])
 
         body = VGroup(block, origin).arrange(DOWN, buff=GAP_SM)
         stack = VGroup(body, caption).arrange(DOWN, buff=GAP_SM * 2)
