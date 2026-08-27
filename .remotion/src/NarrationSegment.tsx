@@ -11,48 +11,7 @@ import {StatusBar} from './components/StatusBar';
 import {SubtitleCaptions} from './components/SubtitleCaptions';
 import {PunchText} from './components/PunchText';
 import {BootTerminal} from './components/BootTerminal';
-
-function activeCutaway(segmentFrame: number, cutaways: CutawayData[]) {
-  return cutaways.find(
-    (c) => segmentFrame >= c.fromFrame
-      && segmentFrame < c.fromFrame + c.durationInFrames,
-  );
-}
-
-/**
- * Wraps a decorative overlay so it NEVER renders while ANY full-frame
- * cutaway is on screen.
- *
- * A cutaway IS the content -- a diagram to read, or a screencast showing
- * real output -- and decoration drawn on top of it hides exactly what the
- * viewer is meant to look at. Both real bugs this caught:
- *   - an emoji burst sat dead-center over `digest == piece.hash` in
- *     code-verify-piece.mp4, cutting the word "hash";
- *   - the celebration meme's corner inset landed on the `sha256sum` digest
- *     line of the demo screencast, cutting the hash again.
- * Hence "any cutaway", not just manim/: the screencast case proves a
- * manim-only rule is too narrow. Enforced here rather than by per-cue
- * timing, because timing drifts every time the edit changes.
- */
-const CutawaySafeSequence: React.FC<{
-  from: number;
-  durationInFrames: number;
-  cutaways: CutawayData[];
-  layout?: 'none';
-  children: React.ReactNode;
-}> = ({from, durationInFrames, cutaways, layout, children}) => (
-  <Sequence from={from} durationInFrames={durationInFrames} layout={layout}>
-    <CutawayGate from={from} cutaways={cutaways}>{children}</CutawayGate>
-  </Sequence>
-);
-
-const CutawayGate: React.FC<{from: number; cutaways: CutawayData[]; children: React.ReactNode}> = ({
-  from, cutaways, children,
-}) => {
-  const localFrame = useCurrentFrame();
-  if (activeCutaway(from + localFrame, cutaways)) return null;
-  return <>{children}</>;
-};
+import {activeCutaway, CutawaySafeSequence} from './components/CutawaySafe';
 
 /**
  * Captions run continuously so no stretch of speech is ever bare, with two
