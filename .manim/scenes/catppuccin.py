@@ -557,3 +557,41 @@ def code_block(source, language="rust", size=17, width=None, line_numbers=False)
     if width is not None and block.width > width:
         block.scale(width / block.width)
     return block
+
+
+class CodeClip(MochaScene):
+    """Base for a one-snippet code clip: title, block, origin line, caption.
+
+    Subclasses set the four class attributes and nothing else, so every code
+    clip in a video is visually identical. `SOURCE` must be real source pasted
+    from the implementation repo, with elisions marked `// ...`.
+    """
+
+    TITLE = ""
+    SOURCE = ""
+    CAPTION = ""
+    ORIGIN = ""
+
+    def construct(self):
+        title = self.title(self.TITLE, size=28)
+        self.add(title)
+
+        block = code_block(self.SOURCE, width=CONTENT_REGION.width - 1.2)
+        origin = self.caption(self.ORIGIN, size=16)
+        caption = self.label(self.CAPTION, size=21, color=MOCHA["subtext1"])
+
+        body = VGroup(block, origin).arrange(DOWN, buff=GAP_SM)
+        stack = VGroup(body, caption).arrange(DOWN, buff=GAP_SM * 2)
+        CONTENT_REGION.fit(stack)
+
+        self.play(pop_in(block, from_edge=DOWN, run_time=0.4))
+        self.play(pop_in(origin), run_time=0.25)
+        self.play(pop_in(caption, from_edge=DOWN), run_time=0.25)
+
+        audit_layout({"title": title, "code": block, "origin": origin,
+                      "caption": caption}, max_ink=0.80)
+
+        # Hold proportional to how much there is to read. 27 lines of Rust in
+        # 1.8s is not a code clip, it is a flash frame.
+        lines = len(self.SOURCE.strip().splitlines())
+        self.wait(min(2.5 + 0.30 * lines, 12.0))

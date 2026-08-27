@@ -1,39 +1,63 @@
+# =====================================================================
+# This repo is a TEMPLATE. Only files generic to *any* video are tracked.
+# Everything belonging to one particular episode -- footage, generated
+# clips, scenes, editorial plans, renders -- is ignored and lives on disk
+# only. A fresh checkout should be a working harness with no content.
+# =====================================================================
+
+# --- Editor / OS / toolchain cruft ---
 .DS_Store
 *.log
 node_modules/
 __pycache__/
+*.py[cod]
 .env
 
-# raw/processed/manim/remotion outputs are large binaries — don't commit media
+# --- Media: every asset directory holds one video's footage or output ---
 raw/*
 !raw/initial/
 raw/initial/*
 !raw/initial/.gitkeep
 processed/*
-manim/*
-remotion/*
 screencasts/*
 audio/*
 memes/*
+manim/*
+remotion/*
+reels/*
+shorts/*
+images/*
 !*/.gitkeep
 
-# Manim's own render cache/output — regenerable, large
-.manim/media/
+# --- Finished renders at the repo root (final.mp4 / .mkv / .srt) ---
+/final.*
 
-# Remotion's own render output — regenerable, large (node_modules/ rule above covers deps)
-.remotion/out/
+# --- Per-video Manim scenes ---
+# `catppuccin.py` is the shared library: palette, MochaScene, CodeClip,
+# layout regions, spacing scale, audit_layout. Every other scene file is
+# one episode's diagrams and snippets -- write fresh ones per video.
+.manim/scenes/*
+!.manim/scenes/.gitkeep
+!.manim/scenes/catppuccin.py
 
-# Generated from real durations of gitignored media (processed/, manim/, memes/,
-# screencasts/) — meaningless in a checkout without those files. Regenerate with
-# scripts/build_timeline_manifest.py.
-.remotion/src/timeline-data.json
-
-# Per-video editorial plan -- names this episode's actual clips, gifs, punch
-# lines and emoji, so it is NOT template code. The reusable engine it imports
-# (scripts/timeline_lib.py) IS committed. Start a new video by writing a fresh
-# plan against that engine; see docs/remotion-video-guidelines.md.
+# --- Per-video editorial plan ---
+# Names this episode's actual clips, gifs, punch lines and emoji, so it is
+# NOT template code. The reusable engine it imports (scripts/timeline_lib.py)
+# IS committed. Start a new video by writing a fresh plan against that engine;
+# see docs/remotion-video-guidelines.md.
 scripts/build_timeline_manifest.py
 
-# Finished renders and per-video planning notes
-final.mp4
-plan.md
+# --- Per-video Remotion timeline data ---
+# Generated from the real durations of ignored media (processed/, manim/,
+# memes/, screencasts/) -- meaningless in a checkout without those files.
+# Regenerate with scripts/build_timeline_manifest.py.
+.remotion/src/timeline-data.json
+
+# --- Per-video planning notes ---
+/plan.md
+plans/*
+!plans/.gitkeep
+
+# --- Tool render caches and outputs (regenerable) ---
+.manim/media/
+.remotion/out/

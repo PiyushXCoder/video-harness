@@ -5,7 +5,7 @@ description: Create a syntax-highlighted code clip for this video project from t
 
 # Code clips from real source
 
-Renders a snippet as a Catppuccin Mocha code block, 2048x1280 @ 30fps, published to `manim/`. Scenes live in `.manim/scenes/code_clips.py` — add a class there rather than starting a new file, so all code clips stay visually identical.
+Renders a snippet as a Catppuccin Mocha code block, 2048x1280 @ 30fps, published to `manim/`. Scenes live in `.manim/scenes/code_clips.py` — add a class there rather than starting a new file, so all code clips stay visually identical. That file is **per-video and gitignored**; create it if this video doesn't have one yet. The reusable `CodeClip` base it subclasses lives in the tracked `.manim/scenes/catppuccin.py`.
 
 ## The rule that matters
 
@@ -25,8 +25,10 @@ Trimming is fine and usually necessary — dropping error branches, collapsing a
 
 2. **Trim for screen.** Aim for **under ~28 lines** — beyond that the font shrinks past readability at 1280p. Keep the real identifiers, real constants and real comments; the project's own comments are often the best narration you'll get. Mark every elision.
 
-3. **Add a scene** to `.manim/scenes/code_clips.py`:
+3. **Add a scene** to `.manim/scenes/code_clips.py` (creating it with `from catppuccin import CodeClip` if absent):
    ```python
+   from catppuccin import CodeClip
+
    MY_SNIPPET = """
    fn thing() -> bool {
        let digest: [u8; 20] = sha1::Sha1::digest(&data).into();
@@ -35,13 +37,13 @@ Trimming is fine and usually necessary — dropping error branches, collapsing a
    """
 
 
-   class MySnippet(_CodeClip):
+   class MySnippet(CodeClip):
        TITLE = "what this code means"          # the idea, not the function name
        SOURCE = MY_SNIPPET
        ORIGIN = "src/piece_manager/mod.rs"     # always cite the file on screen
        CAPTION = "one line on why it matters"
    ```
-   `_CodeClip` handles the block, the origin line, the caption, the audit, and a hold proportional to line count.
+   `CodeClip` handles the block, the origin line, the caption, the audit, and a hold proportional to line count.
 
 4. **Verify the snippet is valid.** A stray bracket puts broken code on screen — this has already happened once here. Check balance after stripping comments:
    ```bash
@@ -71,5 +73,5 @@ Trimming is fine and usually necessary — dropping error branches, collapsing a
 - **Never set Fira Code on a code block.** Its `//` ligature collapses two characters into one glyph, so Manim's per-character mapping overruns and `Code()` dies with `IndexError: list index out of range` in `_gen_chars`. `disable_ligatures=True` does not help — `Code` breaks before applying it. `code_block()` uses `CODE_FONT`, auto-detected as a ligature-free mono. `sudo pacman -S ttf-fira-mono` installs the matching ligature-free Fira face and `_pick_code_font()` will pick it up automatically; otherwise it falls back to DejaVu Sans Mono. Display text elsewhere keeps Fira Code, where ligatures render `->` and `==` attractively.
 - Highlighting uses a `catppuccin-mocha` pygments style registered at import in `catppuccin.py` (keywords mauve, strings green, comments overlay2, constants peach, operators sky). Do not pass a stock style — it will not match the other clips.
 - Avoid font styles in that pygments style. Italic/bold entries were the first suspect for the `_gen_chars` crash, and colour-only keeps it simple.
-- Reading time is the whole point: 27 lines of Rust needs ~12s, not the ~3s a default `wait()` gives. `_CodeClip` scales the hold; don't override it downward.
+- Reading time is the whole point: 27 lines of Rust needs ~12s, not the ~3s a default `wait()` gives. `CodeClip` scales the hold; don't override it downward.
 - Language is `rust` by default. Pass `language=` to `code_block()` for anything else (`toml` for `Cargo.toml`, `bash` for CLI usage).

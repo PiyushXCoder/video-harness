@@ -84,7 +84,7 @@ freeze-frame or a truncated clip, and neither is obvious in the studio preview.
   authority — parse them rather than eyeballing. Never cut mid-word.
 - **Let a beat land.** Hold ~10 frames after a punchline before the next segment.
 - **Code needs reading time.** 2.5 s + 0.3 s per line, the same rule
-  `_CodeClip` uses. 27 lines of Rust wants ~12 s, not 3.
+  `CodeClip` (in `.manim/scenes/catppuccin.py`) uses. 27 lines of Rust wants ~12 s, not 3.
 
 ---
 

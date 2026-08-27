@@ -78,7 +78,7 @@ Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips 
 
 ## Staged clips
 
-For a diagram revealed across several narration beats, build the FULL layout once and have each stage reveal a subset. Positions then stay fixed across stages with nothing hardcoded — satisfying both S2 (no coordinates) and S7/S19 (established objects never move, so cuts between clips don't make boxes jump). See `build_graph()` in `.manim/scenes/torrent_architecture.py`. Adding a whole new component to that diagram later needed no repositioning at all.
+For a diagram revealed across several narration beats, build the FULL layout once and have each stage reveal a subset. Positions then stay fixed across stages with nothing hardcoded — satisfying both S2 (no coordinates) and S7/S19 (established objects never move, so cuts between clips don't make boxes jump). Put that full layout in a single `build_graph()`-style helper the stage classes share. In the episode this was worked out on, adding a whole new component to the diagram later needed no repositioning at all.
 
 Give each stage its own narrative-beat method rather than one long `construct()` (S25), and dim prior stages' components to `context`, ghosting anything the story has moved past (S16/S14).
 
@@ -96,8 +96,8 @@ stamp and punch line for the whole hold. One 1.7 s clip was being stretched to
 When splitting, put the shared geometry in a base class so the two clips place
 their objects identically — the diagram must not jump on the cut (S7/S19). Have
 part 2 open in part 1's **end** state rather than rebuilding from scratch, so the
-cut reads as the same diagram continuing. See `EndgameProblem` / `EndgameSolution`
-sharing `_Endgame` in `.manim/scenes/endgame_mode.py`.
+cut reads as the same diagram continuing. Concretely: a private `_Diagram` base holding the geometry, with
+`ThingProblem` / `ThingSolution` subclasses playing the two halves.
 
 ## Audit every mobject you create
 
