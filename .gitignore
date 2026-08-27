@@ -6,6 +6,9 @@ __pycache__/
 
 # raw/processed/manim/remotion outputs are large binaries — don't commit media
 raw/*
+!raw/initial/
+raw/initial/*
+!raw/initial/.gitkeep
 processed/*
 manim/*
 remotion/*
