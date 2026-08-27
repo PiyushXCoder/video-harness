@@ -5,9 +5,19 @@ description: Create a Manim animation clip for this video project — designing 
 
 # Manim clip creation
 
-Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips are published to `manim/` at the repo root (see `CLAUDE.md`). Resolution 2048x1280 @ 30fps and the Mocha background come from `.manim/manim.cfg` — never repeat them on the command line.
+Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips are published to `manim/` at the repo root (see `CLAUDE.md`). Resolution 2048x1280 @ 30fps and the background colour come from `.manim/manim.cfg` — never repeat them on the command line.
 
-**Read `docs/manim-layout-guidelines.md` before designing a non-trivial scene.** It is 30 rules on layout engineering; the ones that bite hardest here are S2/S28 (express position as relationships, not coordinates), S9 (one spacing scale), S16 (dim context so the new thing dominates), and S22 (validate before shipping).
+## Before you write anything
+
+**1. Is this actually mathematics?** Manim is for **mathematical animation only**: a function being plotted and transformed, an equation rearranged, a geometric or algebraic argument. A chart of *measured data*, an architecture diagram, a title card, kinetic type or code is `remotion-clip`'s job (`CLAUDE.md`). If the answer is no, stop here and use that skill — Manim costs a CPU-bound Cairo render and a round trip through a file for a result Remotion composes directly.
+
+**2. Read `DESIGN.md`.** It is the design authority for the whole video, and it is **read, not parsed** — the load-bearing parts are judgements no token can carry: the accent is functional and never decorative, the content supplies the colour so the frame stays achromatic, shadows are heavy because thin ones are invisible on dark. **Section 10 is the video adaptation and overrides section 3's web-scaled sizes**; section 8 does not apply at all.
+
+Everything it specifies is already encoded in `.manim/scenes/design.py`. Import from there — **never name a colour or a size yourself**. `python3 scripts/check_design.py` fails the build on a raw hex or a literal `font_size`.
+
+**3. Read `docs/manim-layout-guidelines.md`** before designing a non-trivial scene. 30 rules on layout engineering; the ones that bite hardest here are S2/S28 (express position as relationships, not coordinates), S9 (one spacing scale), S16 (dim context so the new thing dominates), and S22 (validate before shipping).
+
+The division is clean: **`DESIGN.md` decides what things look like; the layout guidelines decide where they go.** They do not overlap, and neither is optional.
 
 ## Workflow
 
@@ -39,7 +49,8 @@ Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips 
 
    | helper | use |
    |---|---|
-   | `ROLE[...]` | every colour, by semantic role. Never a hex, never `BLUE`/`RED` — see `DESIGN.md` |
+   | `ROLE[...]` | every colour, by semantic role (`accent`, `text_muted`, `warning`…). Never a hex, never Manim's `BLUE`/`RED` — those are outside `DESIGN.md` entirely |
+| `SIZE[...]`, `px()` | type sizes, and `px()` to convert a `DESIGN.md` pixel value into scene units |
    | `GAP_XS/SM/MD/LG/XL` | every gap. A new literal needs a reason (S9) |
    | `row()` / `stack()` | siblings side by side / top to bottom (S5) |
    | `Region`, `CONTENT_REGION.fit()` | assign objects to a region; scale-to-fit only if needed (S3/S17) |
@@ -72,9 +83,15 @@ Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips 
    cd .manim && manim render scenes/<clip_name>.py Scene1 Scene2 -o <clip_name>
    ```
 
-7. **Publish** from `.manim/media/videos/<file>/1280p30/<Scene>.mp4` to `manim/<clip_name>.mp4`.
+7. **Check the design lint**, which is cheap and catches what a rendered frame will not tell you — a hex that crept in looks fine on screen and silently forks the design system:
 
-8. **Report** path and duration (`ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1`).
+   ```bash
+   python3 scripts/check_design.py
+   ```
+
+8. **Publish** from `.manim/media/videos/<file>/1280p30/<Scene>.mp4` to `manim/<clip_name>.mp4`.
+
+9. **Report** path and duration (`ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1`).
 
 ## Staged clips
 
