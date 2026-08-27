@@ -22,44 +22,48 @@ the hook does not explicitly suspend.
    fill the gap with your own idea of a good hook. An unresolved item under
    `## Open questions` is a question for the user, not a decision for you.
 
-2. **Realise `## Raw handling`.** The plan says which pauses are load-bearing and
-   where the take splits; turn that into operations.
+2. **Master the take once, and let `## Raw handling` choose how.** `hook-plan`
+   already transcribed the raw take, so the cutter can read it.
 
-   Split on the plan's boundaries, GPU-decoded and NVENC-encoded:
-
-   ```bash
-   ffmpeg -y -hwaccel cuda -i raw/initial/<take>.mkv \
-     -ss <in> -to <out> -c:v h264_nvenc -preset p5 -cq 19 -b:v 0 \
-     -c:a aac -b:a 192k processed/hook-01-<slug>.mkv
-   ```
-
-   Then master each piece **without cutting anything**:
+   If the plan names *some* pauses as load-bearing — keep those, cut the ums:
 
    ```bash
-   python3 scripts/process_recording.py processed/hook-01-<slug>.mkv --no-cut
+   python3 scripts/process_recording.py raw/initial/<take>.mkv \
+     --pauses-from raw/initial/<take>.srt
    ```
 
-   `--no-cut` skips silence detection entirely and runs only highpass +
-   compressor + loudnorm + NVENC. Never run the default path on hook footage: it
-   shortens every gap over 1 s, which is exactly the performance the plan asked
-   to keep. `--no-cut` also switches loudnorm to two passes with `linear=true`,
-   because single-pass loudnorm is dynamic and ramps the gain up across a long
-   pause — measured 1.9 LU hot on an 8 s clip with one 4 s pause.
+   If the plan says **every** pause is performance, keep the lot:
 
-   Prefer trimming in the manifest over trimming on disk. A beat's
-   `startFromSec`/`toSec` is non-destructive and survives a replan; a re-encode
-   does not.
+   ```bash
+   python3 scripts/process_recording.py raw/initial/<take>.mkv --no-cut
+   ```
 
-3. **Regenerate the `.srt` for every piece you produced.**
+   The two flags are mutually exclusive and the script says so. Read
+   `--pauses-from`'s per-gap verdicts against the plan; if it wants to cut a
+   pause the plan called load-bearing, that is a disagreement to resolve, not a
+   number to tune. **Never run the bare default on hook footage** — it shortens
+   every gap over 1 s on duration alone, which is exactly the performance the
+   plan asked to keep.
+
+   `--no-cut` also switches loudnorm to two passes with `linear=true`, because
+   single-pass loudnorm is dynamic and ramps the gain up across a long pause —
+   measured 1.9 LU hot on an 8 s clip with one 4 s pause.
+
+3. **Prefer trimming in the manifest over splitting on disk.** A beat's
+   `startFromSec`/`toSec` is non-destructive, survives a replan, and keeps one
+   file with one `.srt` — no split offsets to track. Split into separate files
+   only where the plan genuinely needs them.
+
+   `--pauses-from` writes the remapped `.srt` beside its output, so
+   `processed/<take>.srt` already matches the cut and needs no second whisper
+   pass. **If you do split on disk with `ffmpeg -ss/-to`, regenerate that
+   piece's `.srt`** — the moment you shift timestamps the old one describes
+   nothing on disk, and `check_text_not_early()` would silently validate against
+   the wrong timeline:
 
    ```bash
    ./scripts/generate_subtitles.sh processed/hook-*.mkv
    ```
-
-   This is load-bearing, not housekeeping. `hook-plan` transcribed the *raw*
-   take; the moment you split or trim it those timestamps describe nothing on
-   disk. `check_text_not_early()` compares text timing against the srt, so a
-   stale one silently validates against the wrong timeline.
 
 4. **Write `scripts/build_hook_manifest.py`** — this episode's editorial plan,
    gitignored. It imports the tracked engine and never hand-types a duration or

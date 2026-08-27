@@ -25,6 +25,7 @@ Usage:
   process_recording.py <input> [output] [options]
 
 Options:
+  --pauses-from SRT   keep pauses the transcript says are deliberate
   --no-cut            keep every pause; master audio only (see below)
   --gap SECONDS       mid-speech silence long enough to shorten  [1.0]
   --noise DB          dBFS threshold below which audio counts as silence  [-30]
@@ -33,6 +34,17 @@ Options:
   --tail SECONDS      silence kept after the last word  [0.35]
   --min-seg SECONDS   drop kept segments shorter than this (sliver guard)  [0.35]
   --dry-run           print the cut plan and exit without encoding
+
+--pauses-from takes a .srt of THIS file (transcribe raw before cutting) and
+protects the silences the words either side say are deliberate: a completed
+sentence before the gap, or a reversal after it. Gaps where the speaker
+trails off mid-clause, or backs up and repeats themselves, are still cut. An
+ambiguous gap is KEPT -- a pause wrongly kept costs a beat of dead air, a
+pause wrongly cut destroys a delivery. See scripts/pause_lib.py.
+
+With --pauses-from the remapped subtitles are written beside the output, so
+the sidecar .srt always matches the cut timeline and no second whisper pass
+is needed.
 
 --no-cut skips the cutting stage ENTIRELY and runs only the mastering
 chain (highpass, compressor, loudnorm) plus the NVENC encode. It exists for
@@ -59,6 +71,10 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pause_lib
+from srt_lib import read_srt, write_srt
 
 # How close to 0 / duration a silence must start / end to count as
 # leading / trailing dead air rather than a mid-speech gap.
@@ -116,12 +132,16 @@ def detect_silences(path, noise_db, duration):
     return [(s, ends[i] if i < len(ends) else duration) for i, s in enumerate(starts)]
 
 
-def keep_segments(duration, silences, gap, max_gap, head, tail, min_seg):
+def keep_segments(duration, silences, gap, max_gap, head, tail, min_seg,
+                  protected=()):
     """Segments of the source to keep, in order.
 
     A mid-speech silence shorter than `gap` is left completely alone — those are
     natural speech beats. A longer one is shortened to `max_gap`, removing half
     from each side so the pause stays centred between the two phrases.
+
+    A silence overlapping a `protected` window is left completely alone however
+    long it is -- that is --pauses-from's verdict that the pause is deliberate.
 
     Leading/trailing silence is trimmed to head/tail regardless of length, since
     dead air at a clip boundary is never a beat.
@@ -153,6 +173,8 @@ def keep_segments(duration, silences, gap, max_gap, head, tail, min_seg):
         length = end - start
         if length < gap:
             continue  # natural speech beat, leave it alone
+        if pause_lib.is_protected(start, end, protected):
+            continue  # the transcript says this pause is performance
         pad = min(length, max_gap) / 2.0
         cut_start = start + pad
         cut_end = end - pad
@@ -210,6 +232,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("input")
     ap.add_argument("output", nargs="?")
+    ap.add_argument("--pauses-from", metavar="SRT", help="a .srt of this file; keep the pauses it says are deliberate")
     ap.add_argument("--no-cut", action="store_true", help="keep every pause; run mastering + encode only")
     ap.add_argument("--gap", type=float, default=1.0, help="mid-speech silence (s) long enough to shorten; shorter ones are left alone")
     ap.add_argument("--noise", type=float, default=-30.0, help="silence threshold in dB")
@@ -223,6 +246,13 @@ def main():
     src = Path(args.input)
     if not src.is_file():
         sys.exit(f"Error: '{src}' not found.")
+
+    if args.no_cut and args.pauses_from:
+        # --no-cut already keeps every pause, so there is nothing for the
+        # transcript to decide. Say so rather than silently ignoring a flag.
+        sys.exit("Error: --no-cut and --pauses-from are mutually exclusive. "
+                 "--no-cut keeps every pause unconditionally; --pauses-from "
+                 "keeps only the ones the transcript says are deliberate.")
 
     if args.output:
         dst = Path(args.output)
@@ -242,9 +272,29 @@ def main():
             return
         segments = None
     else:
+        protected, plan = (), []
+        if args.pauses_from:
+            srt_path = Path(args.pauses_from)
+            if not srt_path.is_file():
+                sys.exit(f"Error: --pauses-from '{srt_path}' not found. Transcribe "
+                         f"the RAW file first: ./scripts/generate_subtitles.sh {src}")
+            plan = pause_lib.pause_plan(srt_path, args.gap)
+            protected = pause_lib.protected_windows(plan)
+            kept_n = sum(1 for g in plan if g["verdict"] == "keep")
+            unsure_n = sum(1 for g in plan if g["reason"] == "unsure")
+            print(f"Pause plan from {srt_path.name}: {len(plan)} gap(s) >= "
+                  f"{args.gap}s -- keeping {kept_n}, cutting {len(plan) - kept_n}"
+                  f"{f' ({unsure_n} kept as unsure)' if unsure_n else ''}")
+            for g in plan:
+                mark = "KEEP" if g["verdict"] == "keep" else "cut "
+                print(f"  {mark} {g['start']:7.2f}s +{g['duration']:4.2f}s  "
+                      f"{g['reason']}")
+                print(f"       ...{g['before'][-46:]!r} | {g['after'][:46]!r}...")
+
         silences = detect_silences(src, args.noise, duration)
         segments = keep_segments(duration, silences, args.gap, args.max_gap,
-                                 args.head, args.tail, args.min_seg)
+                                 args.head, args.tail, args.min_seg,
+                                 protected=protected)
 
         if not segments:
             sys.exit("Error: silence detection removed the entire recording — check --noise/--gap.")
@@ -307,6 +357,15 @@ def main():
     if result.returncode != 0:
         sys.exit(result.returncode)
     print(f"Done. Output written to '{dst}'")
+
+    # The cut map is known exactly, so the raw transcript can be projected
+    # through it -- no second whisper pass, and the sidecar .srt can never
+    # silently describe the uncut source.
+    if args.pauses_from and segments is not None:
+        out_srt = dst.with_suffix(".srt")
+        remapped = pause_lib.remap_cues(read_srt(Path(args.pauses_from)), segments)
+        write_srt(out_srt, remapped)
+        print(f"Remapped subtitles -> '{out_srt}' ({len(remapped)} cues)")
 
 
 if __name__ == "__main__":

@@ -35,16 +35,29 @@ rather than guess when a name is opaque.
 1. **Process the footage, then transcribe.** Delegate to `process-recording`;
    do not re-derive it here.
 
+   **Transcribe the raw takes FIRST**, then cut — the cutter reads the
+   transcript to tell a deliberate pause from dead air:
+
    ```bash
-   for f in raw/*.mkv; do python3 scripts/process_recording.py "$f"; done
-   ./scripts/generate_subtitles.sh
+   ./scripts/generate_subtitles.sh raw/*.mkv        # transcribe BEFORE cutting
+   for f in raw/*.mkv; do
+     python3 scripts/process_recording.py "$f" --pauses-from "${f%.*}.srt"
+   done
    ```
 
-   The order is fixed: processing changes the timeline, so subtitles come after.
-   `raw/initial/` is excluded automatically — both scripts glob `raw/*.mkv`, and
-   the hook is never silence-cut anyway. If you re-encode anything later,
-   regenerate its `.srt` with `--force` in the same pass; a stale `.srt` is a
-   silent failure.
+   Without `--pauses-from` the only test for "is this pause intentional?" is
+   duration, so a deliberate 2.5 s beat before a reveal gets flattened to 0.7 s
+   exactly like 2.5 s of the speaker deciding what to say next. With it, a pause
+   after a completed sentence or before a reversal survives; trailing off
+   mid-clause and backing up to repeat yourself still get cut. An ambiguous gap
+   is kept. It prints its verdict and reason per gap — read that output.
+
+   **This also produces `processed/*.srt` for free**, remapped through the cut
+   map, so you do not run whisper twice and the sidecar can never silently
+   describe the uncut raw. Do not transcribe `processed/` separately.
+
+   `raw/initial/` is excluded automatically — `raw/*.mkv` does not match a
+   subdirectory, and the hook is `hook-plan`'s job.
 
 2. **Discard bad takes.** Read the transcripts for false starts and flubs — they
    trail off mid-sentence, or repeat a line a later clip does better. Move them
