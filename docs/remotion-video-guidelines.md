@@ -1,7 +1,7 @@
 # Final video assembly & animation guidelines (Remotion)
 
 How the finished video is built. Remotion is the editor — there is no manual NLE
-step. Everything here is specific to this project: 30 fps, Catppuccin Mocha,
+step. Everything here is specific to this project: 30 fps, `DESIGN.md`'s palette,
 Fira Code, narration mastered to −16 LUFS.
 
 Read `docs/manim-layout-guidelines.md` too. Its rules on relationships-over-

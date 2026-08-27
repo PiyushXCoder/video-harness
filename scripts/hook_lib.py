@@ -55,9 +55,10 @@ OUT = REPO_ROOT / ".remotion" / "src" / "hook-data.json"
 # alone -- fails if the body's manifest is absent. See write_stub().
 TIMELINE_OUT = REPO_ROOT / ".remotion" / "src" / "timeline-data.json"
 
-# Catppuccin Mocha base -- the background a pure-graphics beat sits on when
-# the plan does not name one. Matches .manim/manim.cfg and palette.ts.
-DEFAULT_BACKGROUND = "#1e1e2e"
+# DESIGN.md ROLE["bg"] -- the background a pure-graphics beat sits on when the
+# plan does not name one. Must match .manim/manim.cfg and
+# .remotion/src/design.ts; change all three together.
+DEFAULT_BACKGROUND = "#121212"
 
 WIDTH, HEIGHT = 2048, 1280
 
@@ -195,7 +196,7 @@ def build_beat(beat):
       durationSec   REQUIRED when source is omitted
       captions      emit word-pop cues from source's sidecar .srt  [False]
       muted         drop this beat's own audio                     [False]
-      background    css colour behind the beat        [Mocha base #1e1e2e]
+      background    css colour behind the beat      [DESIGN.md bg #121212]
       cutawaySafe   gate decoration off cutaways                    [True]
       rulesSuspended  body rules this beat drops, from plans/hook.md  [[]]
       texts / stamps / overlays / cutaways / emoji / sfx / bootTerminal

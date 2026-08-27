@@ -79,7 +79,7 @@ rather than guess when a name is opaque.
 
    - **Spine** — the narrative order of clips. Recording order is not always it.
    - **Theme** — what the video argues, in one sentence. Everything serves it.
-   - **Visual language** — Catppuccin Mocha + Fira Code is fixed (`CLAUDE.md`).
+   - **Visual language** — fixed by `DESIGN.md`; read it before deciding anything visual.
      Decide the recurring motifs: does the architecture diagram return as a
      through-line? Is there a consistent colour for the component under
      discussion?

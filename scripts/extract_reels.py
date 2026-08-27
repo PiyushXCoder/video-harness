@@ -89,6 +89,25 @@ def has_nvenc() -> bool:
                        capture_output=True, text=True)
     return "h264_nvenc" in r.stdout
 
+# ── DESIGN.md mirror ────────────────────────────────────────────────────
+# This script writes ASS subtitle styles and ffmpeg drawtext filters, so it
+# cannot import .remotion/src/design.ts (TypeScript) or .manim/scenes/design.py
+# (which pulls in all of Manim). It is therefore the ONE documented exception to
+# "two places only" -- see DESIGN.md section 11. Change DESIGN.md and you change
+# three files, not two.
+D_BG = "121212"          # ROLE.bg
+D_SURFACE = "181818"     # ROLE.surface
+D_TEXT = "ffffff"        # ROLE.text
+D_TEXT_MUTED = "b3b3b3"  # ROLE.textMuted
+D_ACCENT = "1ed760"      # ROLE.accent -- functional only
+D_SCRIM = "000000"       # ROLE.scrim
+
+
+def _ass_colour(hex6, alpha="00"):
+    """#RRGGBB -> ASS &HAABBGGRR. ASS is BGR with alpha first."""
+    rr, gg, bb = hex6[0:2], hex6[2:4], hex6[4:6]
+    return f"&H{alpha}{bb}{gg}{rr}"
+
 # ── Hook scoring ────────────────────────────────────────────────────────
 
 HOOK_PHRASES = [
@@ -330,13 +349,17 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Reel,Fira Code,54,&H00F4D6CD,&H000000FF,&H00111B1E,&HAA1E1E2E,0,0,0,0,100,100,0,0,1,3,1,2,80,80,220,1
+Style: Reel,Fira Code,54,{primary},&H000000FF,{outline},{back},0,0,0,0,100,100,0,0,1,3,1,2,80,80,220,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-"""
+""".format(
+        primary=_ass_colour(D_TEXT),
+        outline=_ass_colour(D_SCRIM),
+        back=_ass_colour(D_SURFACE, "AA"),
+    )
     for s, e, body in events:
-        # Catppuccin box via BackColour already in style; add subtle outline
+        # Scrim box via BackColour already in the style above.
         ass += f"Dialogue: 0,{s},{e},Reel,,0,0,0,,{body}\n"
     ass_path.write_text(ass, encoding="utf-8")
     return ass_path
@@ -354,9 +377,9 @@ def render_endcard_ffmpeg(out_path: Path):
         if Path(cand).exists():
             font = cand
             break
-    vf_parts = [f"color=c=0x1e1e2e:s={REEL_W}x{REEL_H}:r={FPS}:d={END_CARD_SEC}"]
+    vf_parts = [f"color=c=0x{D_BG}:s={REEL_W}x{REEL_H}:r={FPS}:d={END_CARD_SEC}"]
     # Gradient approximation: solid base + vignette via color filter is heavy;
-    # keep solid Catppuccin base — matches EndCard2's base colour.
+    # keep the solid DESIGN.md background -- matches EndCard2.
     # Use drawtext for 3 lines with fade-in via alpha expression.
     # fontfile only if found, else let ffmpeg pick default.
     def dt(text, y, fontsize, color, alpha_expr):
@@ -368,18 +391,17 @@ def render_endcard_ffmpeg(out_path: Path):
             f":x=(w-text_w)/2:y={y}:alpha='if(lt(t\\,0.3)\\,t/0.3\\,1)'"
         )
     h = REEL_H
-    # Catppuccin colours: yellow #f9e2af, text #cdd6f4, subtext0 #a6adc8, green #a6e3a1
     vf = (
-        f"color=c=0x1e1e2e:s={REEL_W}x{REEL_H}:r={FPS}:d={END_CARD_SEC},"
-        f"drawtext=text='Full video on YouTube':fontfile={font if font else 'sans'}:fontsize=56:fontcolor=#f9e2af:x=(w-text_w)/2:y=760:alpha='if(lt(t\\,0.35)\\,t/0.35\\,1)',"
-        f"drawtext=text='Link in description  ↓':fontfile={font if font else 'sans'}:fontsize=38:fontcolor=#cdd6f4:x=(w-text_w)/2:y=860:alpha='if(lt(t\\,0.6)\\,(t-0.3)/0.3\\,1)',"
-        f"drawtext=text='Watch the complete build':fontfile={font if font else 'sans'}:fontsize=28:fontcolor=#a6adc8:x=(w-text_w)/2:y=940:alpha='if(lt(t\\,0.9)\\,(t-0.6)/0.3\\,1)'"
+        f"color=c=0x{D_BG}:s={REEL_W}x{REEL_H}:r={FPS}:d={END_CARD_SEC},"
+        f"drawtext=text='Full video on YouTube':fontfile={font if font else 'sans'}:fontsize=56:fontcolor=#{D_ACCENT}:x=(w-text_w)/2:y=760:alpha='if(lt(t\\,0.35)\\,t/0.35\\,1)',"
+        f"drawtext=text='Link in description  ↓':fontfile={font if font else 'sans'}:fontsize=38:fontcolor=#{D_TEXT}:x=(w-text_w)/2:y=860:alpha='if(lt(t\\,0.6)\\,(t-0.3)/0.3\\,1)',"
+        f"drawtext=text='Watch the complete build':fontfile={font if font else 'sans'}:fontsize=28:fontcolor=#{D_TEXT_MUTED}:x=(w-text_w)/2:y=940:alpha='if(lt(t\\,0.9)\\,(t-0.6)/0.3\\,1)'"
     )
     # Simpler: single drawtext chain handled above; use full vf
     # Build command with proper escaping — use lavfi color source
     cmd = [
         "ffmpeg", "-y",
-        "-f", "lavfi", "-i", f"color=c=0x1e1e2e:s={REEL_W}x{REEL_H}:r={FPS}:d={END_CARD_SEC}",
+        "-f", "lavfi", "-i", f"color=c=0x{D_BG}:s={REEL_W}x{REEL_H}:r={FPS}:d={END_CARD_SEC}",
         "-vf", vf,
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium",
         "-an",
@@ -390,13 +412,13 @@ def render_endcard_ffmpeg(out_path: Path):
     if r.returncode != 0:
         # retry without alpha expressions
         vf_simple = (
-            f"drawtext=text='Full video on YouTube':fontsize=64:fontcolor=#f9e2af:x=(w-text_w)/2:y=760,"
+            f"drawtext=text='Full video on YouTube':fontsize=64:fontcolor=#{D_ACCENT}:x=(w-text_w)/2:y=760,"
             f"drawtext=text='Link in description  ↓':fontsize=40:fontcolor=white:x=(w-text_w)/2:y=860,"
-            f"drawtext=text='Watch the complete build':fontsize=28:fontcolor=#a6adc8:x=(w-text_w)/2:y=940"
+            f"drawtext=text='Watch the complete build':fontsize=28:fontcolor=#{D_TEXT_MUTED}:x=(w-text_w)/2:y=940"
         )
         cmd2 = [
             "ffmpeg", "-y",
-            "-f", "lavfi", "-i", f"color=c=0x1e1e2e:s={REEL_W}x{REEL_H}:r={FPS}:d={END_CARD_SEC}",
+            "-f", "lavfi", "-i", f"color=c=0x{D_BG}:s={REEL_W}x{REEL_H}:r={FPS}:d={END_CARD_SEC}",
             "-vf", vf_simple,
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18",
             "-an", str(out_path),

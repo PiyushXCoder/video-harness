@@ -19,12 +19,12 @@ Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips 
 
    ```python
    from manim import *
-   from catppuccin import (MOCHA, MochaScene, audit_layout, component, connect,
+   from design import (ROLE, DesignScene, audit_layout, component, connect,
                            dim, endpoints, place_label_clear, row, stack,
                            CONTENT_REGION, GAP_LG, GAP_XL)
 
 
-   class <ClassName>(MochaScene):
+   class <ClassName>(DesignScene):
        def construct(self):
            title = self.title("what this beat says")
            boxes = {k: component(...) for k in SPEC}
@@ -35,11 +35,11 @@ Manim Community v0.19.1. Scene source lives in `.manim/scenes/`; rendered clips 
            audit_layout({"title": title, **boxes}, connections=conns)
    ```
 
-   Engine API in `.manim/scenes/catppuccin.py`:
+   Engine API in `.manim/scenes/design.py`:
 
    | helper | use |
    |---|---|
-   | `MOCHA[...]` | every colour. Never `BLUE`/`RED` — Manim's defaults clash with Mocha |
+   | `ROLE[...]` | every colour, by semantic role. Never a hex, never `BLUE`/`RED` — see `DESIGN.md` |
    | `GAP_XS/SM/MD/LG/XL` | every gap. A new literal needs a reason (S9) |
    | `row()` / `stack()` | siblings side by side / top to bottom (S5) |
    | `Region`, `CONTENT_REGION.fit()` | assign objects to a region; scale-to-fit only if needed (S3/S17) |
@@ -109,7 +109,7 @@ note was never passed to the audit. Pass **everything** visible, and run
 ## Notes
 
 - Manim's Cairo renderer is CPU-bound — the project's "prefer NVIDIA GPU" rule applies to the ffmpeg scripts, not to Manim.
-- `.manim/media/` is gitignored (regenerable). `.manim/manim.cfg` and the shared engine `.manim/scenes/catppuccin.py` are template code; the per-episode scene files are this video's content, so don't fold them into a template commit.
+- `.manim/media/` is gitignored (regenerable). `.manim/manim.cfg` and the shared engine `.manim/scenes/design.py` are template code; the per-episode scene files are this video's content, so don't fold them into a template commit.
 - Re-running a render reuses Manim's cache for unchanged animations.
 - Naming a spacing/style constant after a Manim export shadows it. A constant called `NORMAL` silently turned `weight=NORMAL` into `weight=0.42`; hence the `GAP_` prefix.
 - `DashedVMobject` keeps its dashes as submobjects and has no points itself, so `get_start()`/`get_end()` throw on a dashed arrow. `link()` records `layout_start`/`layout_end`; read them via `endpoints(arrow)`.

@@ -61,7 +61,7 @@ The helper `scripts/extract_reels.py` implements these heuristics and prints a s
 
 ## End card — "full video in description"
 
-Every reel ends with a **3.5 s animated end card, 1080×1920**, Catppuccin Mocha + Fira Code (same as `EndCard2` / `catppuccin.py`), with e.g.:
+Every reel ends with a **3.5 s animated end card, 1080×1920**, styled from `DESIGN.md` (same tokens as `EndCard2`), with e.g.:
 
 ```
 Full video on YouTube
@@ -160,7 +160,7 @@ cd .remotion && npx remotion render ReelEndCard out/reel-endcard.mp4 --concurren
 cp out/reel-endcard.mp4 ../reels/.tmp/reel-endcard.mp4
 ```
 
-The composition mirrors `EndCard2` but vertical: progress shimmer → headline spring → subline fade, Catppuccin `base`→`mantle` gradient, `FONT` = Fira Code. See that file for the exact `spring`/`interpolate` (clamped) values.
+The composition mirrors `EndCard2` but vertical: progress shimmer → headline spring → subline fade, `DESIGN.md`'s background `bg`→`mantle` gradient, `FONT` = Fira Code. See that file for the exact `spring`/`interpolate` (clamped) values.
 
 ## Gotchas (read before debugging)
 

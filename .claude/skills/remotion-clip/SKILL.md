@@ -75,9 +75,9 @@ Code on screen is Remotion's job — Manim is for mathematical animation only
   PY
   ```
   Then diff what you pasted against the original by eye.
-- **Highlighting must match** the Mocha values in `.remotion/src/palette.ts`
+- **Highlighting must match** `DESIGN.md` section 10.9, encoded in `.remotion/src/design.ts`
   (keywords mauve, strings green, comments overlay2, constants peach, operators
-  sky). Shiki ships a Catppuccin Mocha theme; add a highlighter to `.remotion/`
+  keyword green, string blue, number orange, comment faint gray). Add a highlighter to `.remotion/`
   if the clip needs one rather than assuming one is installed.
 - **Ligatures are safe here.** The old Manim path banned Fira Code on code blocks
   because its `//` ligature desynced Manim's per-character glyph mapping and
