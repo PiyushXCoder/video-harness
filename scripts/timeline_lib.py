@@ -24,7 +24,7 @@ What lives here:
 
   report_coverage
       Finds stretches with nothing on screen (no text, gif, emoji, stamp,
-      boss frame) outside a full-frame cutaway. Density is measured, not
+      hud) outside a full-frame cutaway. Density is measured, not
       assumed.
 
   build_segment / build_manifest
@@ -314,7 +314,7 @@ def build_segment(seg):
         "captionPos": seg.get("captionPos", "bottom"),
         "statusBar": seg.get("statusBar", ""),
         "nameTags": [],
-        "bossFrame": None,
+        "hud": None,
         # Word-pop caption cues, only for segments that opt in. Each cue
         # carries its own real start/end so the renderer can hold a line for
         # exactly as long as it is being spoken.
@@ -557,29 +557,111 @@ def build_segment(seg):
             "to": to_scale,
             "originY": float(pu.get("originY", 0.4)),
         })
-    bf = seg.get("bossFrame")
-    if bf:
-        # Sub-element times are LOCAL to the boss frame's own window, since
-        # BossFrame reads useCurrentFrame() inside its <Sequence>. None means
-        # "never show this element" rather than "show from the start".
-        def local(key):
-            if bf.get(key) is None:
-                return None
-            return frames(bf[key] - bf["fromSec"])
+    hud = seg.get("hud")
+    if hud:
+        hud_from, hud_to = hud["fromSec"], hud["toSec"]
+        if hud_to <= hud_from:
+            sys.exit(f"Error: {seg['id']}: hud window <= 0 ({hud_from}..{hud_to})")
+        if hud_from >= dur:
+            sys.exit(
+                f"Error: {seg['id']}: hud starts at {hud_from}s but the segment "
+                f"is only {dur:.1f}s long, so it would never appear."
+            )
 
-        out["bossFrame"] = {
-            "fromFrame": frames(bf["fromSec"]),
-            "durationInFrames": frames(bf["toSec"] - bf["fromSec"]),
-            "label": bf["label"],
-            "hpBar": bool(bf.get("hpBar", False)),
-            "fastPeersFrame": local("fastPeersSec"),
-            "slowPeerFrame": local("slowPeerSec"),
-            "powerUpFrame": local("powerUpSec"),
+        meter = None
+        if hud.get("meter"):
+            m = hud["meter"]
+            stops = [float(v) for v in m["stops"]]
+            # One stop is not a meter, it is a number; the renderer would also
+            # divide by zero working out where to place it.
+            if len(stops) < 2:
+                sys.exit(f"Error: {seg['id']}: hud meter needs at least 2 stops")
+            meter = {
+                "stops": stops,
+                "unit": m.get("unit", ""),
+                "readoutPrefix": m.get("readoutPrefix", ""),
+                "color": m.get("color"),
+            }
+
+        marks = []
+        for mk in hud.get("marks", []):
+            kind = mk["kind"]
+            if kind not in ("glyphs", "note", "flash"):
+                sys.exit(f"Error: {seg['id']}: unknown hud mark kind {kind!r}")
+            # A mark's time is LOCAL to the hud's window, because <Hud> reads
+            # useCurrentFrame() inside its own <Sequence>. The plan writes
+            # absolute seconds like everything else and the conversion happens
+            # exactly here.
+            at = mk["atSec"]
+            if not (hud_from <= at < hud_to):
+                sys.exit(
+                    f"Error: {seg['id']}: hud mark at {at}s falls outside the "
+                    f"hud window {hud_from}..{hud_to}s, so it would never show."
+                )
+            # A mark illustrates a line that is being spoken. Same gate as
+            # every other text layer -- this is the check that caught marks
+            # landing ~10s before their line.
+            if mk.get("label"):
+                check_not_early(seg["id"], "hudMark", mk["label"].split(), at, timeline)
+            marks.append({
+                "atFrame": frames(at - hud_from),
+                "kind": kind,
+                "glyphs": list(mk.get("glyphs", [])),
+                "label": mk.get("label", ""),
+                "color": mk.get("color", "text"),
+            })
+
+        out["hud"] = {
+            "fromFrame": frames(hud_from),
+            "durationInFrames": frames(hud_to - hud_from),
+            "kicker": hud.get("kicker", ""),
+            "kickerColor": hud.get("kickerColor", "textMuted"),
+            "label": hud["label"],
+            "meter": meter,
+            "marks": marks,
         }
     return out
 
 
 MAX_BARE_SEC = 1.5  # a stretch longer than this with nothing on screen reads as dead air
+
+# How long a stamp stays up. This MIRRORS MOTION.minTextFrames in design.ts
+# (DESIGN.md 10.6/10.8) -- Python cannot import the TS module, so if that
+# number moves, move this one. It is here only to work out stamp windows for
+# the collision check below.
+STAMP_FRAMES = 60
+
+
+def check_hud_stamp_collision(built):
+    """A stamp and the HUD band cannot share the top of the frame.
+
+    DESIGN.md 10.4 divides the frame so layers cannot collide, and these two
+    are the only layers that both claim the top: a 140px stamp sits at 15%
+    (~192px) while the HUD band runs y=80..210. Rendered together, the meter
+    draws straight through the stamp's letters.
+
+    They are mutually exclusive rather than re-positioned because both want
+    the same thing -- the top of the frame, uncontested -- and a video that
+    needs both at once is really asking for two beats.
+    """
+    clashes = []
+    for seg in built:
+        hud = seg["hud"]
+        if not hud:
+            continue
+        h0 = hud["fromFrame"]
+        h1 = h0 + hud["durationInFrames"]
+        for st in seg["stamps"]:
+            s0 = st["fromFrame"]
+            s1 = s0 + STAMP_FRAMES
+            if s0 < h1 and h0 < s1:
+                clashes.append((seg["id"], st["text"], s0 / FPS, h0 / FPS))
+    if clashes:
+        for seg_id, text, at, hud_at in clashes:
+            print(f"Error: {seg_id}: stamp {text!r} at {at:.1f}s overlaps the "
+                  f"hud starting {hud_at:.1f}s -- both own the top of the frame",
+                  file=sys.stderr)
+        sys.exit("Error: a stamp and the hud cannot be on screen together.")
 
 
 def report_coverage(built):
@@ -618,8 +700,8 @@ def report_coverage(built):
             mark(covered, pt["fromFrame"], pt["durationInFrames"])
         if seg["bootTerminal"]:
             mark(covered, seg["bootTerminal"]["fromFrame"], seg["bootTerminal"]["durationInFrames"])
-        if seg["bossFrame"]:
-            mark(covered, seg["bossFrame"]["fromFrame"], seg["bossFrame"]["durationInFrames"])
+        if seg["hud"]:
+            mark(covered, seg["hud"]["fromFrame"], seg["hud"]["durationInFrames"])
         for layer in ("callouts", "buildLists", "twoColumns"):
             for item in seg[layer]:
                 mark(covered, item["fromFrame"], item["durationInFrames"])
@@ -670,6 +752,7 @@ def build_manifest(segments, end_card, progress_unit=None, beds=()):
     """
     built = [build_segment(s) for s in segments]
     check_no_repeated_gifs(built)
+    check_hud_stamp_collision(built)
     total_frames = sum(s["durationInFrames"] for s in built)
     # No title-card block: segment 0's real audio+picture play from frame 0,
     # and its on-screen text comes from its own .srt cues (captions=True).

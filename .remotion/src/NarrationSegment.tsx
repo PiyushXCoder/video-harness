@@ -6,7 +6,7 @@ import {MemeOverlay} from './components/MemeOverlay';
 import {Stamp} from './components/Stamp';
 import {NameTag} from './components/NameTag';
 import {EmojiBurst} from './components/EmojiBurst';
-import {BossFrame} from './components/BossFrame';
+import {Hud} from './components/Hud';
 import {SubtitleCaptions} from './components/SubtitleCaptions';
 import {PunchText} from './components/PunchText';
 import {BootTerminal} from './components/BootTerminal';
@@ -58,7 +58,7 @@ const CaptionsGate: React.FC<{
  * One narration beat: the base talking-head/screencast video plays start to
  * finish with its real audio, unconditionally, from frame 0 -- nothing waits
  * for anything else to finish first. Cutaways play unguarded; every
- * decorative overlay (stamps, emoji, name tags, boss frame,
+ * decorative overlay (stamps, emoji, name tags, hud,
  * memes) goes through CutawaySafeSequence so none of them can cover a
  * diagram or a screencast. Segments with `cues` also run word-pop captions
  * driven by their own .srt.
@@ -248,23 +248,14 @@ export const NarrationSegment: React.FC<{
         </CutawaySafeSequence>
       ))}
 
-      {segment.bossFrame && (
+      {segment.hud && (
         <CutawaySafeSequence
-          from={segment.bossFrame.fromFrame}
-          durationInFrames={segment.bossFrame.durationInFrames}
+          from={segment.hud.fromFrame}
+          durationInFrames={segment.hud.durationInFrames}
           cutaways={segment.cutaways}
           layout="none"
         >
-          <BossFrame
-            label={segment.bossFrame.label}
-            hpBar={segment.bossFrame.hpBar}
-            fastPeersFrame={segment.bossFrame.fastPeersFrame}
-            slowPeerFrame={segment.bossFrame.slowPeerFrame}
-            powerUpFrame={segment.bossFrame.powerUpFrame}
-            slowPeerLabel={segment.bossFrame.slowPeerLabel}
-            powerUpLabel={segment.bossFrame.powerUpLabel}
-            durationInFrames={segment.bossFrame.durationInFrames}
-          />
+          <Hud hud={segment.hud} />
         </CutawaySafeSequence>
       )}
 

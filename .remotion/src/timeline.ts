@@ -150,18 +150,52 @@ export type NameTagData = {
   durationInFrames: number;
 };
 
-export type BossFrameData = {
+/**
+ * A bar that walks its stops evenly across the HUD's window.
+ *
+ * [100, 60, 20, 0] depletes; [0, 100] fills; more stops shape the curve. The
+ * numbers are the video's own — a percentage, a piece count, a temperature —
+ * so `unit` and `readoutPrefix` are what make the readout mean anything.
+ */
+export type HudMeterData = {
+  stops: number[];
+  unit: string;
+  readoutPrefix: string;
+  // A role name to pin the fill, or null for the default ramp: green in the
+  // top half of the meter's own range, amber, then red.
+  color: string | null;
+};
+
+/**
+ * One timed annotation on the HUD. `atFrame` is LOCAL to the HUD's window and
+ * belongs to the cue that speaks it -- a mark away from its line is noise.
+ *
+ * The kind carries its own zone (DESIGN.md 10.4), so there is no separate
+ * position to set and no way for the two to disagree:
+ *
+ *   glyphs  a row of glyphs popping in one after another   -- top right
+ *   note    one glyph and a short label, fading in         -- bottom left
+ *   flash   a colour wash over the frame and a banner line -- lower band
+ */
+export type HudMarkData = {
+  atFrame: number;
+  kind: 'glyphs' | 'note' | 'flash';
+  // 'glyphs': the whole row. 'note': the first is the icon. 'flash': unused.
+  glyphs: string[];
+  label: string;
+  color: string;
+};
+
+/** A heads-up display: a header band, plus marks that arrive on cue. */
+export type HudData = {
   fromFrame: number;
   durationInFrames: number;
+  // All copy. The template hardcodes none of it.
+  kicker: string;
+  kickerColor: string;
   label: string;
-  hpBar: boolean;
-  // Frames are LOCAL to the boss frame's own window, each keyed to the cue
-  // that actually speaks it. null means the element never shows.
-  fastPeersFrame: number | null;
-  slowPeerFrame: number | null;
-  powerUpFrame: number | null;
-  slowPeerLabel: string;
-  powerUpLabel: string;
+  meter: HudMeterData | null;
+  marks: HudMarkData[];
 };
 
 export type CueData = {
@@ -204,7 +238,7 @@ export type SegmentData = {
   sfx: SfxData[];
   statusBar: string;
   nameTags: NameTagData[];
-  bossFrame: BossFrameData | null;
+  hud: HudData | null;
   // Non-empty only for segments that opted into word-pop captions.
   cues: CueData[];
   // Lower-third punch lines. Several per segment; they are the main text

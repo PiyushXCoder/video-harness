@@ -1,18 +1,17 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, Loop, OffthreadVideo, staticFile, useCurrentFrame} from 'remotion';
 import type {OverlayData} from '../timeline';
-import {ROLE, SHADOW} from '../design';
+import {ROLE, SHADOW, ZONE} from '../design';
 
 const ENTRANCE_FRAMES = 6;
 const EXIT_FRAMES = 6;
 
-// Top corners clear the BossFrame header band -- its label, HP bar and "HP: n%"
-// readout occupy roughly y=80..210 (see BossFrame.tsx), and at top: 48 the
-// endgame insets landed right on the progress bar. Bottom corners clear
-// StatusBar's 56px bar (see StatusBar.tsx BAR_HEIGHT) -- bottom: 48 alone put
-// the box's lower edge 8px INSIDE it.
-const TOP_INSET = 232;
-const BOTTOM_INSET = 48 + 56;
+// Top corners clear the HUD band -- its kicker, title, meter and readout
+// (DESIGN.md 10.4, ZONE.hudTop + ZONE.hudBandHeight); at top: 48 the insets
+// landed right on the meter. Bottom corners clear the status bar. Both come
+// from ZONE so the coupling is visible: move the HUD band and this follows.
+const TOP_INSET = ZONE.insetTop;
+const BOTTOM_INSET = ZONE.insetBottom;
 const CORNER_STYLE: Record<OverlayData['corner'], React.CSSProperties> = {
   tl: {top: TOP_INSET, left: 48},
   tr: {top: TOP_INSET, right: 48},

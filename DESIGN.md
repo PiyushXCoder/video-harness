@@ -308,7 +308,14 @@ Fira Code throughout for display; `CODE_FONT` for code blocks.
 | Terminal | 28 | 400 | 0.02em | — | boot/terminal list, mono |
 | Tag | 20 | 700 | 0.1em | uppercase | lower-third name tag |
 | Status value | 15 | 600 | 0.5px | — | status bar reading |
-| Status label | 14 | 400 | normal | — | status bar caption |
+| Status label | 14 | 400 | normal | — | status bar caption, HUD meter readout |
+| HUD title | 32 | 700 | normal | — | what the HUD band names |
+| HUD label | 16 | 700 | 0.125em | uppercase | the HUD's kicker above the title |
+| HUD banner | 24 | 700 | 0.08em | — | a HUD flash mark's one line |
+| HUD note | 14 | 400 | normal | — | a HUD note mark's label |
+| HUD glyph | 28 | — | — | — | a HUD mark's glyph |
+| Card title | 56 | 700 | normal | — | column / list heading on a graphics beat |
+| Card body | 28 | 400 | normal | — | column / list line |
 
 Nothing below **14 px** ever ships: at 2048 wide that is under 1% of frame height
 and vanishes on a phone.
@@ -335,6 +342,8 @@ The frame is divided so layers cannot collide. Values in px from the named edge.
 |---|---|---|
 | Top banner | 15% from top | stamps |
 | Top-left | 80, 80 | terminal list |
+| HUD band | 80 from top and both sides, ~130 tall | HUD kicker, title, meter |
+| HUD marks | 260 from top-right / 140 from bottom-left / 78% banner | the HUD's timed annotations |
 | Upper-right | 22% top, 80% left | emoji burst |
 | **Centre** | — | **the speaker. Reserved. See 10.5** |
 | Flank left / right | 80 from side, max-width 620 | text beside a speaker (hook only) |
@@ -348,6 +357,18 @@ The frame is divided so layers cannot collide. Values in px from the named edge.
 Caption max-width is **1240 of 2048, not 1600** — a full-width line collided with
 the corner inset.
 
+**The HUD band and the top banner are mutually exclusive.** They are the only
+two layers that both claim the top of the frame — a 140px stamp sits at 15%
+(~192px) while the HUD band runs y=80..210 — and rendered together the meter
+draws straight through the stamp's letters. Neither is moved, because both want
+the same thing: the top of the frame, uncontested. A beat that seems to need
+both is really two beats. `check_hud_stamp_collision()` fails the build.
+
+The **corner inset** is derived, not chosen: its top of 232 clears the HUD band
+and its bottom of 104 clears the status bar. That is the one place two zones are
+coupled, so moving the HUD band moves this number with it. Both live as tokens
+side by side for exactly that reason.
+
 The **flank** zones are the only per-take numbers in this table. 620px each side
 clears a subject occupying the middle quarter of the frame; measure where yours
 actually sits and re-tune both the column width and the scrim, rather than
@@ -358,6 +379,12 @@ assuming. They exist only so the hook can obey 10.5 — see there.
 **Nothing is placed at frame centre while a speaker is on screen.** A kinetic-text
 layer that popped the narrator's own words dead-centre was deleted for landing on
 their face in every shot.
+
+Horizontally centred is not the same as *at frame centre*. The HUD's banner mark
+is centred left-to-right but sits at 78% height, well down in the lower band, and
+is fine — it was moved there after an earlier version landed on the narrator's
+face. The rule is about the **middle of the frame**, where a face is, not about
+the horizontal axis.
 
 The one exception is a beat with **no speaker** — a title card, a chart, a pure
 motion-graphics hook. There the centre is the only sensible place for a title, and
@@ -376,6 +403,7 @@ Frame counts at 30 fps. Read `fps` from `useVideoConfig()`; never hardcode 30.
 |---|---|
 | Word stagger (captions, punch) | 3 |
 | Line stagger (terminal, build list) | 8 |
+| Glyph pop stagger (HUD marks) | 6 |
 | Fade in | 8 |
 | Fade out | 10 |
 | Overlay entrance / exit | 6 |

@@ -140,7 +140,10 @@ export const TYPE: Record<string, TypeSpec> = {
   statusValue: {size: SIZE.xs, weight: WEIGHT.semibold, tracking: '0.5px'},
   statusLabel: {size: SIZE.xs, weight: WEIGHT.regular},
   hudTitle: {size: SIZE.xl, weight: WEIGHT.bold},
-  hudLabel: {size: SIZE.sm, weight: WEIGHT.bold},
+  hudLabel: {size: SIZE.sm, weight: WEIGHT.bold, tracking: '0.125em', transform: 'uppercase'},
+  hudBanner: {size: SIZE.md, weight: WEIGHT.bold, tracking: '0.08em'},
+  hudNote: {size: SIZE.xs, weight: WEIGHT.regular},
+  hudGlyph: {size: SIZE.lg, weight: WEIGHT.regular},
   cardTitle: {size: SIZE.hero, weight: WEIGHT.bold},
   cardBody: {size: SIZE.lg, weight: WEIGHT.regular},
 };
@@ -202,8 +205,8 @@ export function scrim(
 /**
  * Where each layer lives. These are tuned values, not arbitrary: the caption
  * max-width is 1240 of 2048 rather than 1600 because a full-width line collided
- * with the corner inset, and the inset's own top of 232 clears the boss-frame
- * header while its bottom clears the status bar.
+ * with the corner inset, and the inset's own top of 232 clears the HUD band
+ * (hudTop + hudBandHeight) while its bottom clears the status bar.
  *
  * CENTRE IS ABSENT ON PURPOSE. It is the speaker's face (section 10.5).
  */
@@ -232,11 +235,23 @@ export const ZONE = {
   barPadX: 24,
   barGap: 20,
 
+  // The HUD band and its timed marks. hudBandHeight is what insetTop below is
+  // derived from -- the two are coupled, which is why they sit together.
+  hudTop: 80,
+  hudPadX: 80,
+  hudBandHeight: 130,
+  hudMeterHeight: 20,
+  hudMarkTop: 260,
+  hudMarkRight: 120,
+  hudMarkBottom: 140,
+  hudMarkLeft: 120,
+  hudBannerTop: '78%',
+
   terminalTop: 80,
   terminalLeft: 80,
   scrimTerminalHeight: '42%',
 
-  insetTop: 232,
+  insetTop: 232, // 80 hud top + 130 band + 22 clear
   insetBottom: 104, // 48 clear + 56 status bar
   insetMargin: 48,
 
@@ -256,6 +271,7 @@ export const ZONE = {
 export const MOTION = {
   wordStagger: 3,
   lineStagger: 8,
+  glyphStagger: 6,
   fadeIn: 8,
   fadeOut: 10,
   entrance: 6,
