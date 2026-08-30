@@ -48,7 +48,7 @@ component under discussion — not a fresh palette.
 | `raw/` | raw recordings, `.mkv` | unedited, possibly with flubbed takes |
 | `raw/initial/` | the hook take | belongs to `hook-plan`, not here |
 | `screencasts/` | screen recordings, meaningfully named | captured manually |
-| `video_clips/` | short clips the user dropped in | tracked in git, so small |
+| `video_clips/` | short clips the user dropped in | gitignored, like every asset dir |
 | `images/` or as given | stills | diagrams, screenshots, logos |
 | `memes/` | assets the user already picked | may be empty |
 

@@ -175,8 +175,8 @@ CLAUDE.md         project conventions, loaded every session
 
 raw/ processed/ screencasts/ audio/ memes/ manim/ remotion/ reels/
                   one episode's media — gitignored
-video_clips/      the exception: tracked, so short hand-picked clips
-                  travel with the repo. Keep them small.
+video_clips/      short clips the user drops in by hand for a plan to
+                  draw on — gitignored like the rest
 plans/            plans/main.md, plans/hook.md — per-video, gitignored
 ```
 

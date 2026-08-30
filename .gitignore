@@ -1,8 +1,19 @@
 # =====================================================================
 # This repo is a TEMPLATE. Only files generic to *any* video are tracked.
 # Everything belonging to one particular episode -- footage, generated
-# clips, scenes, editorial plans, renders -- is ignored and lives on disk
-# only. A fresh checkout should be a working harness with no content.
+# clips, scenes, compositions, editorial plans, renders -- is ignored and
+# lives on disk only. A fresh checkout should be a working harness with no
+# content.
+#
+# Two rules do the work, and the second exists because the first kept
+# leaking:
+#   1. Per-video FILES are ignored by path, grouped below with the reason.
+#   2. Binary MEDIA is ignored by extension, everywhere, unconditionally.
+# Rule 2 is the backstop: a new asset directory, a stray render written to
+# the repo root, or a clip dropped somewhere nobody thought of is caught
+# without anyone having to remember to add a path. Git history for binaries
+# is permanent and cannot be undone without rewriting history, so the
+# default has to be "no".
 # =====================================================================
 
 # --- Editor / OS / toolchain cruft ---
@@ -12,6 +23,33 @@ node_modules/
 __pycache__/
 *.py[cod]
 .env
+.claude/settings.local.json
+
+# --- Binary media, anywhere in the tree (rule 2 above) ---
+# Nothing tracked is one of these, and nothing tracked should become one:
+# the engines are text, the content is not. Subtitles are here too -- an
+# .srt is generated from a take by whisper, so it belongs to the episode
+# exactly as much as the take does.
+# If you ever genuinely need one committed (a diagram in docs/, say), it is
+# a deliberate act: `git add -f <path>`.
+*.mp4
+*.mkv
+*.mov
+*.webm
+*.avi
+*.gif
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.aac
+*.ogg
+*.srt
+*.vtt
+*.png
+*.jpg
+*.jpeg
+*.webp
 
 # --- Media: every asset directory holds one video's footage or output ---
 raw/*
@@ -27,9 +65,12 @@ remotion/*
 reels/*
 shorts/*
 images/*
-# video_clips/ is DELIBERATELY ABSENT from this list: it is tracked, so a
-# short clip handed over by hand travels with the repo. See CLAUDE.md.
-# Binaries in git history are permanent -- keep them small.
+thumb/*
+# video_clips/ holds short clips dropped in by hand for a plan to draw on.
+# It was once the single tracked asset dir, on the theory that a small clip
+# should travel with the repo; it is ignored now like every other, because
+# "small" is not enforceable and a committed binary is forever.
+video_clips/*
 !*/.gitkeep
 
 # --- Finished renders at the repo root (final.mp4 / .mkv / .srt) ---
@@ -42,6 +83,17 @@ images/*
 .manim/scenes/*
 !.manim/scenes/.gitkeep
 !.manim/scenes/design.py
+
+# --- Per-video Remotion compositions ---
+# The same split as .manim/scenes/, for the same reason. `remotion-clip`
+# writes one file per clip here and registers it in Root.tsx, so this
+# directory fills up with an episode's title cards, charts and code shots.
+# Only the two structural compositions are template: `Hook` (the opening,
+# built by hook-build) and `ReelEndCard` (the vertical CTA for extract-reels).
+# Reusable pieces belong in .remotion/src/components/, which IS tracked.
+.remotion/src/compositions/*
+!.remotion/src/compositions/Hook.tsx
+!.remotion/src/compositions/ReelEndCard.tsx
 
 # --- Per-video editorial plan ---
 # Names this episode's actual clips, gifs, punch lines and emoji, so it is
