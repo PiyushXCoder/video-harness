@@ -32,6 +32,8 @@ Everything it specifies is already encoded in **`.remotion/src/design.ts`**. Imp
    import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
    import {ROLE, FONT_DISPLAY, TYPE, SPACE, ZONE, MOTION, SHADOW} from '../design';
 
+   import type {ClipConfig} from '../clips';
+
    export const <ComponentName>: React.FC<{durationInFrames: number}> = ({durationInFrames}) => {
      const frame = useCurrentFrame();
      // Clamp BOTH ends of every interpolate — an unclamped one drifts the
@@ -59,21 +61,19 @@ Everything it specifies is already encoded in **`.remotion/src/design.ts`**. Imp
    - **Nothing at frame centre while a speaker is on screen** (10.5) — that is their face. A clip with no speaker in it may use the centre; say so when you do.
    - **Every piece of text carries a scrim or a heavy shadow** (10.3). Over arbitrary footage contrast is never guaranteed, so `scrim()` or `SHADOW.text` is not optional. A coloured `glow()` may sit on top for emphasis but never replaces the black shadow underneath.
 
-3. **Register it** in `.remotion/src/Root.tsx` — add both imports and a `<Composition>` entry:
+3. **Register it from the clip's own file** — export a `clipConfig` at the bottom, and **do not touch `Root.tsx`**:
    ```tsx
-   import {<ComponentName>} from './compositions/<ComponentName>';
-   import {VIDEO} from './design';
-   // ...
-   <Composition
-     id="<clip_name>"
-     component={<ComponentName>}
-     durationInFrames={<N>}
-     fps={VIDEO.fps}
-     width={VIDEO.width}
-     height={VIDEO.height}
-   />
+   export const clipConfig: ClipConfig = {
+     id: '<clip_name>',
+     durationInFrames: <N>,
+     component: <ComponentName>,
+   };
    ```
-   `VIDEO` comes from `./design` (Root.tsx sits beside it) — 2048×1280 @ 30 fps (8:5, this project's native recording ratio), so a clip fills the frame and nothing is scaled. Only override for a deliberately different deliverable (a vertical reel). `durationInFrames` = seconds × fps.
+   `discoverClips()` in `.remotion/src/clips.ts` picks up every file in `compositions/` that exports one, so the clip appears in `npx remotion compositions` and in the studio with no other edit. This is why registration is self-declared: `compositions/` is gitignored per-video while `Root.tsx` is tracked template, so hand-registering there writes an episode's names into the template and leaves dead ids behind when the clip is deleted.
+
+   `fps`/`width`/`height` are optional and default to `VIDEO` — 2048×1280 @ 30 fps (8:5, this project's native recording ratio), so a clip fills the frame and nothing is scaled. Set them only for a deliberately different deliverable (a vertical reel). `durationInFrames` = seconds × fps.
+
+   Two ids that collide, or a `clipConfig` with no `component`, fail the bundle loudly rather than silently overwriting one another.
 
 4. **Render** from `.remotion/` — a still first, then video. A still is seconds and proves both that `staticFile()` paths resolve and that a real frame decodes:
    ```bash
