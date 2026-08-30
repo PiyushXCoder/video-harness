@@ -68,13 +68,15 @@ Key semantics, easy to get wrong:
 
 ## Tuning stage 2
 
-Defaults: large-v3-turbo, `LANG_CODE=en`, `MAX_LEN=42` chars per caption line, and a `PROMPT` biasing BitTorrent vocabulary.
+Defaults: large-v3-turbo, `LANG_CODE=en`, `MAX_LEN=42` chars per caption line, and a subject-agnostic `PROMPT` that steers punctuation and capitalisation only.
 
 - **Caption lines too long/short**: `MAX_LEN=32 ./scripts/generate_subtitles.sh --force`. Captions are not burned in — the `.srt` is uploaded to YouTube — so this only affects on-screen callouts you derive from it.
-- **Wrong domain jargon** (new video topic — the default prompt is BitTorrent-specific): override it, since this is what makes accented technical speech resolve correctly.
+- **Wrong domain jargon**: write `plans/vocabulary.txt`, one term per line, and re-run with `--force`. This is what makes accented technical speech resolve correctly, and it is **per-video** — the template ships no domain terms, so a fresh episode starts with none and says so on stderr. Keep the list to words that actually get misheard: whisper keeps ~224 tokens of prompt and drops the rest **silently**, so padding it weakens the terms that matter. The script warns when the list gets long.
   ```bash
-  PROMPT="Screencast about <topic>. Vocabulary: <term>, <term>, ..." ./scripts/generate_subtitles.sh --force
+  printf 'niri\nWayland\ncompositor\n' > plans/vocabulary.txt
+  ./scripts/generate_subtitles.sh --force raw/*.mkv
   ```
+  `PROMPT="..."` still overrides the whole prompt if you want to hand-write it.
 - **Accuracy still poor**: swap the model rather than fighting parameters — `WHISPER_MODEL=~/.local/share/whisper.cpp/models/ggml-large-v3.bin` (slower, more accurate than turbo on heavy accents). Download models from `https://huggingface.co/ggerganov/whisper.cpp` into `~/.local/share/whisper.cpp/models/`.
 
 ## Gotchas

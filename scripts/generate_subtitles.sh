@@ -15,7 +15,17 @@
 #   WHISPER_MODEL  path to ggml model  (default ~/.local/share/whisper.cpp/models/ggml-large-v3-turbo.bin)
 #   LANG_CODE      spoken language     (default en)
 #   MAX_LEN        max caption chars   (default 42)
-#   PROMPT         initial prompt biasing domain vocabulary
+#   VOCAB_FILE     per-video term list (default plans/vocabulary.txt)
+#   PROMPT         full initial prompt; overrides VOCAB_FILE entirely
+#
+# THE PROMPT IS PER-VIDEO, NOT PER-TEMPLATE. whisper's initial prompt is what
+# makes accented technical speech resolve domain terms correctly -- but the
+# terms belong to whatever this episode is about, so a subject baked in here
+# actively mis-biases every other video. The template ships a neutral prompt
+# that biases only FORMATTING (punctuation, capitalised proper nouns), and the
+# episode supplies its own words in a gitignored file:
+#
+#   plans/vocabulary.txt   one term per line; blank lines and # comments ignored
 #
 # Requires: whisper-cli (whisper-cpp), ggml-cpu + ggml-cuda backends, ffmpeg.
 
@@ -24,7 +34,40 @@ set -uo pipefail
 MODEL="${WHISPER_MODEL:-$HOME/.local/share/whisper.cpp/models/ggml-large-v3-turbo.bin}"
 LANG_CODE="${LANG_CODE:-en}"
 MAX_LEN="${MAX_LEN:-42}"
-PROMPT="${PROMPT:-Screencast about building a BitTorrent client from scratch. Vocabulary: BitTorrent, torrent, tracker, DHT, magnet link, peer, seeder, leecher, handshake, bencode, info hash, piece, block, bitfield, TCP, UDP, socket, async, buffer, payload.}"
+VOCAB_FILE="${VOCAB_FILE:-plans/vocabulary.txt}"
+
+# Subject-agnostic: it steers punctuation and capitalisation, which every video
+# wants, and names no domain at all.
+BASE_PROMPT="Screencast narration, spoken clearly, with full punctuation and proper nouns capitalised."
+
+if [ -z "${PROMPT:-}" ]; then
+  PROMPT="$BASE_PROMPT"
+  if [ -f "$VOCAB_FILE" ]; then
+    # One term per line; strip comments and surrounding blanks, drop empties.
+    terms=$(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
+              "$VOCAB_FILE" | grep -v '^$')
+    if [ -n "$terms" ]; then
+      count=$(printf '%s\n' "$terms" | grep -c .)
+      # `paste -sd, -` then widen: -d takes a CYCLIC LIST of delimiters, so
+      # `-d ', '` alternates comma and space and silently mangles the list.
+      joined=$(printf '%s\n' "$terms" | paste -sd, - | sed 's/,/, /g')
+      PROMPT="$BASE_PROMPT Vocabulary: $joined."
+      echo "vocab: $count terms from $VOCAB_FILE"
+    fi
+  else
+    echo "vocab: no $VOCAB_FILE -- transcribing with no domain vocabulary." >&2
+    echo "       Domain terms and proper nouns will be guessed phonetically." >&2
+  fi
+fi
+
+# whisper's initial prompt is capped at 224 tokens and the excess is dropped
+# SILENTLY -- a long list would look applied while its tail did nothing. ~4
+# chars per token is the usual rule of thumb, so warn well before the cliff.
+if [ "${#PROMPT}" -gt 800 ]; then
+  echo "warn: prompt is ${#PROMPT} chars; whisper keeps only ~224 tokens and" >&2
+  echo "      drops the rest silently. Trim $VOCAB_FILE to the terms that" >&2
+  echo "      actually get misheard." >&2
+fi
 
 FORCE=0
 args=()
