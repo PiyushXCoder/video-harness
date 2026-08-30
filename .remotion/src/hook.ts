@@ -39,14 +39,80 @@ export type HookSourceData = {
   srcDurationInFrames: number;
   // A beat whose audio is carried by a music bed or another beat is muted.
   muted: boolean;
+  // >1 speeds the source up. The BEAT's own duration is already
+  // (toSec - startFromSec) / playbackRate, computed in hook_lib -- so this is
+  // only the playback instruction, never a length to re-derive here.
+  playbackRate: number;
+  // Archive-card margin as a fraction of the frame. 0 renders edge to edge.
+  // See DESIGN.md ARCHIVE in design.ts for why archival footage is inset.
+  inset: number;
 };
+
+/**
+ * Ken Burns for one beat. Not decoration: this hook's archival sources are
+ * often completely static (three windows already open, nothing moving), so
+ * the push-in is the only thing keeping the shot alive.
+ */
+export type HookMotionData = {
+  kind: 'none' | 'push-in' | 'pull-out' | 'drift-left' | 'drift-right';
+  from: number;
+  to: number;
+};
+
+/** Era grade, 0-1 each. Graded per beat, not applied over the whole hook. */
+export type HookGradeData = {
+  darken: number;
+  vignette: number;
+  grain: number;
+  // Multipliers; 1.0 is untouched.
+  contrast: number;
+  saturate: number;
+};
+
+/**
+ * Hook-level audio, on the hook's OWN timeline.
+ *
+ * Not per-beat sfx: a beat's sfx live inside its <Series.Sequence>, which
+ * CLIPS them to that beat's length -- so anything spanning a cut is silently
+ * truncated. A pitched-down chant runs from beat 3 into beat 5; a 7.6s riser
+ * sits under a 2.8s beat. `fromFrame` is absolute hook time, like `music`.
+ *
+ * `kind` is editorial only ('voice' for takes, 'bed' for drones and risers).
+ * Both render identically; the label keeps the manifest readable.
+ */
+export type HookAudioData = {
+  kind: 'voice' | 'bed';
+  file: string;
+  fromFrame: number;
+  startFromFrame: number;
+  durationInFrames: number;
+  gainDb: number;
+  // Anti-click only. The edit point itself must land in real silence.
+  fadeInFrames: number;
+  fadeOutFrames: number;
+};
+
+/**
+ * The hook's sfx carry a real WINDOW, which the body's SfxData does not.
+ * Hook.tsx used to hardcode 60 frames, silently truncating any effect over
+ * 2s -- a riser, a drone, a swell. Extending rather than editing SfxData
+ * keeps the body's manifest (which emits no duration) valid.
+ */
+export type HookSfxData = SfxData & {durationInFrames: number};
 
 export type HookCutawayData = {
   src: string;
   fromFrame: number;
   durationInFrames: number;
+  // Where to start inside the cutaway's own source.
+  startFromFrame: number;
   srcDurationInFrames: number;
   holdOnly: boolean;
+  // A hook cutaway is third-party footage, so it renders through
+  // <ArchiveFrame> (inset, native aspect) rather than the body's <Cutaway>,
+  // which has no objectFit and would stretch a 16:9 clip into 8:5.
+  inset: number;
+  grade: HookGradeData;
 };
 
 /**
@@ -62,23 +128,31 @@ export type HookTextData = {
   words: string[];
   color: string;
   size?: number | null;
-  anchor: 'top' | 'center' | 'lower-third' | 'bottom';
+  anchor: 'top' | 'center' | 'lower-third' | 'bottom' | 'left' | 'right';
+  // DESIGN.md 10.3: text over footage carries a scrim OR a heavy shadow. The
+  // shadow is unconditional; this adds the scrim where the background behind
+  // the text is BUSY rather than merely bright.
+  scrim: boolean;
 };
 
 export type HookBeatData = {
   id: string;
   durationInFrames: number;
+  // Fade up from black over the beat's first N frames. 0 = hard cut in.
+  fadeInFrames: number;
   // null for a pure-graphics beat -- a title card, a chart, kinetic type.
   // This is why a hook cannot be a SegmentData: NarrationSegment renders
   // <OffthreadVideo src={staticFile(segment.file)}> unconditionally.
   source: HookSourceData | null;
+  motion: HookMotionData;
+  grade: HookGradeData;
   background: string;
   cutaways: HookCutawayData[];
   overlays: OverlayData[];
   texts: HookTextData[];
   stamps: StampData[];
   emoji: EmojiData[];
-  sfx: SfxData[];
+  sfx: HookSfxData[];
   // Word-pop subtitles, only for a beat that has its own regenerated .srt.
   cues: CueData[];
   bootTerminal: BootTerminalData | null;
@@ -97,6 +171,9 @@ export type HookManifest = {
   totalDurationInFrames: number;
   // Bed for the hook only. The main video's bed is a separate concern.
   music: {file: string; gainDb: number} | null;
+  // Voice takes and cross-cut beds, laid across the whole hook independent
+  // of where the beat boundaries fall.
+  audio: HookAudioData[];
   beats: HookBeatData[];
 };
 

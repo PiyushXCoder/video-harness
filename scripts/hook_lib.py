@@ -55,10 +55,11 @@ OUT = REPO_ROOT / ".remotion" / "src" / "hook-data.json"
 # alone -- fails if the body's manifest is absent. See write_stub().
 TIMELINE_OUT = REPO_ROOT / ".remotion" / "src" / "timeline-data.json"
 
-# DESIGN.md ROLE["bg"] -- the background a pure-graphics beat sits on when the
-# plan does not name one. Must match .manim/manim.cfg and
-# .remotion/src/design.ts; change all three together.
-DEFAULT_BACKGROUND = "#121212"
+# A ROLE NAME, not a hex: `background` is resolved through resolveColor() on
+# the TS side exactly like a text colour, so the plan never names a hex and
+# check_design.py has nothing to flag. 'bg' is DESIGN.md's page ground; a beat
+# wanting true black asks for 'scrim', the role that IS pure black.
+DEFAULT_BACKGROUND = "bg"
 
 WIDTH, HEIGHT = 2048, 1280
 
@@ -73,7 +74,17 @@ MIN_BEAT_FRAMES = 45
 DEFAULT_TARGET_SEC = 30.0
 DURATION_CEILING_SEC = 45.0
 
-VALID_ANCHORS = ("top", "center", "lower-third", "bottom")
+VALID_ANCHORS = ("top", "center", "lower-third", "bottom", "left", "right")
+
+# Ken Burns kinds. A hook draws on archival footage that is often STATIC --
+# three windows already open, nothing moving -- so motion over a still frame
+# is not decoration here, it is the only thing keeping the shot alive.
+VALID_MOTION = ("none", "push-in", "pull-out", "drift-left", "drift-right")
+
+# DESIGN.md ARCHIVE.inset. A beat may override per-beat; 0 renders the source
+# edge to edge, which is what a 2048x1280 screencast wants and what a
+# third-party archival capture does not.
+DEFAULT_INSET = 0.07
 
 
 def _fail(msg):
@@ -212,12 +223,19 @@ def build_beat(beat):
         src_dur = probe_duration(source_rel)
         end_sec = float(beat.get("toSec", src_dur))
         check_beat_window(beat_id, source_rel, start_sec, end_sec, src_dur)
-        dur = end_sec - start_sec
+        rate = float(beat.get("playbackRate", 1.0))
+        if rate <= 0:
+            _fail(f"{beat_id}: playbackRate must be > 0, got {rate}.")
+        # SCREEN time, not source time. A 6.5s window at 2.5x occupies 2.6s of
+        # the hook -- get this wrong and every later beat is offset.
+        dur = (end_sec - start_sec) / rate
         source = {
             "src": source_rel,
             "startFromFrame": frames(start_sec),
             "srcDurationInFrames": frames(src_dur),
             "muted": bool(beat.get("muted", False)),
+            "playbackRate": rate,
+            "inset": float(beat.get("inset", DEFAULT_INSET)),
         }
     else:
         if "durationSec" not in beat:
@@ -269,6 +287,7 @@ def build_beat(beat):
             "color": t.get("color", "text"),
             "size": t.get("size"),  # None -> TYPE.hookTitle.size
             "anchor": anchor,
+            "scrim": bool(t.get("scrim", False)),
         })
 
     cutaways = []
@@ -283,12 +302,32 @@ def build_beat(beat):
             )
         if c_to <= c_from:
             _fail(f"{beat_id}: cutaway {c['src']} has a non-positive window.")
+        c_start = float(c.get("startFromSec", 0.0))
+        if c_start >= src_dur:
+            _fail(
+                f"{beat_id}: cutaway {c['src']} startFromSec {c_start:.2f}s is "
+                f"at/past the source's {src_dur:.2f}s, so it would be blank."
+            )
+        cg = c.get("grade") or {}
         cutaways.append({
             "src": c["src"],
             "fromFrame": frames(c_from),
             "durationInFrames": frames(c_to - c_from),
+            "startFromFrame": frames(c_start),
             "srcDurationInFrames": frames(src_dur),
             "holdOnly": bool(c.get("holdOnly", False)),
+            # A hook cutaway is third-party footage like any other beat source,
+            # so it gets the ARCHIVE CARD, not a stretched full-frame fill. The
+            # body's <Cutaway> has no objectFit and would distort a 16:9 clip
+            # into 8:5.
+            "inset": float(c.get("inset", DEFAULT_INSET)),
+            "grade": {
+                "darken": float(cg.get("darken", 0.0)),
+                "vignette": float(cg.get("vignette", 0.0)),
+                "grain": float(cg.get("grain", 0.0)),
+                "contrast": float(cg.get("contrast", 1.0)),
+                "saturate": float(cg.get("saturate", 1.0)),
+            },
         })
 
     overlays = []
@@ -330,14 +369,26 @@ def build_beat(beat):
             "color": e.get("color", "text"),
         })
 
-    sfx = [
-        {
+    # An sfx window used to be hardcoded to 60 frames in Hook.tsx, which
+    # silently truncated anything over 2s -- a riser, a drone, a swell. The
+    # window now comes from the file's real length unless the plan overrides.
+    sfx = []
+    for s in beat.get("sfx", []):
+        s_dur = probe_duration(s["file"])
+        s_to = float(s.get("toSec", s["fromSec"] + s_dur))
+        if s_to <= s["fromSec"]:
+            _fail(f"{beat_id}: sfx {s['file']} has a non-positive window.")
+        if s["fromSec"] >= dur:
+            _fail(
+                f"{beat_id}: sfx {s['file']} starts at {s['fromSec']}s but the "
+                f"beat is only {dur:.2f}s long, so it would never be heard."
+            )
+        sfx.append({
             "file": s["file"],
             "fromFrame": frames(s["fromSec"]),
+            "durationInFrames": max(frames(s_to - s["fromSec"]), 1),
             "gain": s.get("gain", 0),
-        }
-        for s in beat.get("sfx", [])
-    ]
+        })
 
     boot = beat.get("bootTerminal")
     boot_out = None
@@ -348,10 +399,56 @@ def build_beat(beat):
             "lines": boot["lines"],
         }
 
+    m = beat.get("motion") or {}
+    kind = m.get("kind", "none")
+    if kind not in VALID_MOTION:
+        _fail(f"{beat_id}: motion kind {kind!r} is not one of {VALID_MOTION}.")
+    motion = {
+        "kind": kind,
+        "from": float(m.get("from", 1.0)),
+        "to": float(m.get("to", 1.0)),
+    }
+
+    # Era grade, 0-1 each. plans/hook.md grades PER BEAT (heaviest 1984, heavy
+    # 1995, absent 2026) rather than applying one look over the whole hook.
+    g = beat.get("grade") or {}
+    grade = {
+        "darken": float(g.get("darken", 0.0)),
+        "vignette": float(g.get("vignette", 0.0)),
+        "grain": float(g.get("grain", 0.0)),
+        # Multipliers, not 0-1 fractions: 1.0 is untouched. The biggest
+        # "cinematic" lever on a flat, brightly-lit room is contrast up and
+        # saturation slightly down -- the latter also pulls a camera shot
+        # toward the achromatic frame DESIGN.md section 10.7 asks for.
+        "contrast": float(g.get("contrast", 1.0)),
+        "saturate": float(g.get("saturate", 1.0)),
+    }
+    for k in ("darken", "vignette", "grain"):
+        if not 0.0 <= grade[k] <= 1.0:
+            _fail(f"{beat_id}: grade.{k} must be within 0..1, got {grade[k]}.")
+    for k in ("contrast", "saturate"):
+        if not 0.2 <= grade[k] <= 2.5:
+            _fail(f"{beat_id}: grade.{k} must be within 0.2..2.5, got {grade[k]}.")
+
+    # Fade up from black, applied to the WHOLE beat. plans/hook.md sets this
+    # to 0.4s on beat 1, deliberately not 1.2s: a black frame is the worst
+    # thing to spend the first second of a muted autoplay on.
+    fade_in = float(beat.get("fadeInSec", 0.0))
+    if fade_in < 0:
+        _fail(f"{beat_id}: fadeInSec must be >= 0, got {fade_in}.")
+    if fade_in > dur:
+        _fail(
+            f"{beat_id}: fadeInSec {fade_in:.2f}s is longer than the beat "
+            f"({dur:.2f}s) -- it would never finish fading in."
+        )
+
     return {
         "id": beat_id,
         "durationInFrames": frames(dur),
+        "fadeInFrames": frames(fade_in),
         "source": source,
+        "motion": motion,
+        "grade": grade,
         "background": beat.get("background", DEFAULT_BACKGROUND),
         "cutaways": cutaways,
         "overlays": overlays,
@@ -366,11 +463,84 @@ def build_beat(beat):
     }
 
 
-def build_hook(beats, music=None, target_sec=DEFAULT_TARGET_SEC):
+def build_audio(items, total_sec, kind):
+    """Hook-level audio, laid on the hook's OWN timeline.
+
+    Why this is not per-beat sfx: a beat's sfx live inside its
+    <Series.Sequence>, which CLIPS them to the beat's own length. Anything
+    that spans a cut is therefore silently truncated -- a pitched-down chant
+    running from beat 3 into beat 5, a 7.6s riser under a 2.8s beat. And a
+    `music`-shaped single slot cannot hold several of them.
+
+    So `atSec` is ABSOLUTE hook time, like `music` is, and a beat boundary is
+    simply not an event this track knows about.
+
+    `kind` is 'voice' or 'bed' -- editorially distinct, mechanically
+    identical, and carried into the manifest so the data stays readable.
+
+    Each entry: {file, atSec, startFromSec?, toSec?, gainDb?}.
+    """
+    out = []
+    for v in items or []:
+        f = v["file"]
+        src_dur = probe_duration(f)
+        a = float(v.get("startFromSec", 0.0))
+        b = float(v.get("toSec", src_dur))
+        at = float(v["atSec"])
+        if b <= a:
+            _fail(f"voice {f}: window {a:.2f}->{b:.2f}s is empty.")
+        if a >= src_dur:
+            _fail(
+                f"{kind} {f}: startFromSec {a:.2f}s is at/past the end of the "
+                f"file ({src_dur:.2f}s), so nothing would be heard."
+            )
+        if b > src_dur + 0.05:
+            _warn(f"{kind} {f}: toSec {b:.2f}s runs past the file's {src_dur:.2f}s.")
+        if at >= total_sec:
+            _fail(
+                f"{kind} {f}: atSec {at:.2f}s is at/past the hook's end "
+                f"({total_sec:.2f}s), so it would never be heard."
+            )
+        if at + (b - a) > total_sec + 0.05:
+            _warn(
+                f"{kind} {f}: runs to {at + (b - a):.2f}s, past the hook's "
+                f"{total_sec:.2f}s -- the tail is cut."
+            )
+        # Fades exist to kill the click at an arbitrary sample boundary, NOT
+        # to rescue a bad edit. An in/out point must already land in real
+        # silence -- verify with silencedetect on the source, because a
+        # transcript will NOT reveal a clipped word (whisper discards the
+        # fragment) and interpolating .srt cue times lands mid-syllable.
+        fi = float(v.get("fadeInSec", 0.0))
+        fo = float(v.get("fadeOutSec", 0.0))
+        if fi < 0 or fo < 0:
+            _fail(f"{kind} {f}: fades must be >= 0.")
+        if fi + fo > (b - a):
+            _fail(
+                f"{kind} {f}: fades ({fi:.2f}s + {fo:.2f}s) exceed the "
+                f"{b - a:.2f}s window."
+            )
+        out.append({
+            "kind": kind,
+            "file": f,
+            "fromFrame": frames(at),
+            "startFromFrame": frames(a),
+            "durationInFrames": max(frames(b - a), 1),
+            "gainDb": float(v.get("gainDb", 0.0)),
+            "fadeInFrames": frames(fi),
+            "fadeOutFrames": frames(fo),
+        })
+    return out
+
+
+def build_hook(beats, music=None, target_sec=DEFAULT_TARGET_SEC,
+               voice=None, beds=None):
     """The single entry point a build_hook_manifest.py plan calls.
 
-    `music` is {"file": ..., "gainDb": ...} or None. `target_sec` should come
-    from the plan's `## Duration target` section.
+    `music` is {"file": ..., "gainDb": ...} or None. `voice` and `beds` are
+    lists of hook-level audio placements on absolute hook time (see
+    build_audio) -- voice for takes, beds for drones and risers that span
+    cuts. `target_sec` should come from the plan's `## Duration target`.
     """
     if not beats:
         _fail("the hook has no beats.")
@@ -388,6 +558,8 @@ def build_hook(beats, music=None, target_sec=DEFAULT_TARGET_SEC):
         "height": HEIGHT,
         "totalDurationInFrames": total_frames,
         "music": music,
+        "audio": (build_audio(voice, total_sec, "voice")
+                  + build_audio(beds, total_sec, "bed")),
         "beats": built,
     }
 
@@ -420,6 +592,7 @@ STUB = {
     "height": HEIGHT,
     "totalDurationInFrames": 180,
     "music": None,
+    "audio": [],
     "beats": [
         {
             "id": "stub-title",
@@ -428,10 +601,15 @@ STUB = {
             "background": DEFAULT_BACKGROUND,
             "cutaways": [], "overlays": [], "stamps": [], "emoji": [],
             "sfx": [], "cues": [], "bootTerminal": None,
+            "fadeInFrames": 0,
+            "motion": {"kind": "none", "from": 1.0, "to": 1.0},
+            "grade": {"darken": 0.0, "vignette": 0.0, "grain": 0.0,
+                      "contrast": 1.0, "saturate": 1.0},
             "texts": [{
                 "fromFrame": 0, "durationInFrames": 90,
                 "words": ["STUB", "HOOK", "--", "run", "build_hook_manifest.py"],
                 "color": "accent", "size": None, "anchor": "center",
+                "scrim": False,
             }],
             "cutawaySafe": True,
             "rulesSuspended": ["centre-frame (no speaker in a stub)"],
@@ -440,13 +618,18 @@ STUB = {
             "id": "stub-second",
             "durationInFrames": 90,
             "source": None,
-            "background": "#181825",
+            "background": "surfaceAlt",
             "cutaways": [], "overlays": [], "stamps": [], "emoji": [],
             "sfx": [], "cues": [], "bootTerminal": None,
+            "fadeInFrames": 0,
+            "motion": {"kind": "none", "from": 1.0, "to": 1.0},
+            "grade": {"darken": 0.0, "vignette": 0.0, "grain": 0.0,
+                      "contrast": 1.0, "saturate": 1.0},
             "texts": [{
                 "fromFrame": 0, "durationInFrames": 90,
                 "words": ["second", "beat"],
                 "color": "info", "size": None, "anchor": "lower-third",
+                "scrim": False,
             }],
             "cutawaySafe": True,
             "rulesSuspended": [],

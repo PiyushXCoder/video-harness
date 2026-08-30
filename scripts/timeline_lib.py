@@ -43,6 +43,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUT = REPO_ROOT / ".remotion" / "src" / "timeline-data.json"
 FPS = 30
+# Delivery frame (DESIGN.md 10, docs/remotion-video-guidelines.md 1). Needed
+# here because a focus crop is expressed relative to the frame it must fill.
+VIDEO_WIDTH = 2048
+VIDEO_HEIGHT = 1280
 
 # How early an on-screen text cue may lead the word it refers to. A tiny lead
 # reads as anticipation; more than this and the text spoils a line before it
@@ -220,13 +224,70 @@ def check_not_early(seg_id, kind, text, from_sec, timeline):
         )
 
 
+FOCUS_MAX_ZOOM = 1.5  # see DESIGN.md 10.7 and the note on build_focus()
+
+
+def build_focus(seg_id, src, focus):
+    """A moving 2048x1280 crop window over a larger source.
+
+    zoom is expressed RELATIVE TO FIT: 1.0 shows the whole source in the
+    frame, and FOCUS_MAX_ZOOM shows a 1:1 pixel window of a source that is
+    exactly 1.5x the delivery frame. That is not an arbitrary ceiling -- this
+    project's screencasts are 3072x1920 against a 2048x1280 delivery, so at
+    1.5 no resampling happens at all and DESIGN.md 10.7's "never scale a
+    source" is honoured rather than suspended. Past it, glyphs soften and the
+    rule bites, so the build refuses.
+    """
+    src_w, src_h = probe_dimensions(src)
+    fit = VIDEO_WIDTH / src_w
+    native_zoom = 1.0 / fit  # zoom at which one source pixel is one out pixel
+    out = {
+        "srcWidth": src_w,
+        "srcHeight": src_h,
+        "zoomFrom": float(focus.get("zoomFrom", 1.0)),
+        "zoomTo": float(focus.get("zoomTo", focus.get("zoomFrom", 1.0))),
+        "cxFrom": float(focus.get("cxFrom", 0.5)),
+        "cyFrom": float(focus.get("cyFrom", 0.5)),
+        "cxTo": float(focus.get("cxTo", focus.get("cxFrom", 0.5))),
+        "cyTo": float(focus.get("cyTo", focus.get("cyFrom", 0.5))),
+    }
+    for key in ("zoomFrom", "zoomTo"):
+        if out[key] < 1.0:
+            sys.exit(
+                f"Error: {seg_id}: {src} {key}={out[key]} is below 1.0, which "
+                f"would letterbox the source inside the frame."
+            )
+        if out[key] > FOCUS_MAX_ZOOM + 1e-6:
+            sys.exit(
+                f"Error: {seg_id}: {src} {key}={out[key]} exceeds the "
+                f"{FOCUS_MAX_ZOOM} ceiling -- past this the source is upscaled "
+                f"and monospace glyphs soften (DESIGN.md 10.7)."
+            )
+        if out[key] > native_zoom + 1e-6:
+            print(
+                f"warn: {seg_id}: {src} is {src_w}x{src_h}, so {key}="
+                f"{out[key]} upscales it (1:1 is {native_zoom:.2f}). Soft.",
+                file=sys.stderr,
+            )
+    return out
+
+
 def build_segment(seg):
-    dur = probe_duration(seg["file"])
-    cues = parse_srt(seg["file"])
+    # A segment with no `file` is a picture-only montage -- the showcase has no
+    # narration at all, so there is no take to probe and no .srt to read. Its
+    # length comes from the plan and its picture comes entirely from cutaways.
+    if seg.get("file"):
+        dur = probe_duration(seg["file"])
+        cues = parse_srt(seg["file"])
+    else:
+        if not seg.get("durationSec"):
+            sys.exit(f"Error: {seg['id']}: a segment with no file needs durationSec")
+        dur = float(seg["durationSec"])
+        cues = []
     timeline = word_timeline(cues)
     out = {
         "id": seg["id"],
-        "file": seg["file"],
+        "file": seg.get("file"),
         "durationInFrames": frames(dur),
         "cutaways": [],
         "overlays": [],
@@ -235,6 +296,22 @@ def build_segment(seg):
         "bootTerminal": None,
         "emoji": [],
         "sfx": [],
+        # Attention layers. spotlights and callouts direct the eye INSIDE a
+        # cutaway without moving the crop; buildLists and twoColumns are
+        # speaker-free full-frame builds.
+        "spotlights": [],
+        "callouts": [],
+        "buildLists": [],
+        "twoColumns": [],
+        # Talking-head only. `punches` slowly scale the base picture so a long
+        # take is never a locked-off static shot; `vignette` darkens the edges
+        # so the eye is pulled to the speaker. Neither ever touches a cutaway:
+        # a screencast is 1:1 and stays that way.
+        "punches": [],
+        "vignette": float(seg.get("vignette", 0.0)),
+        # Where word-pop captions sit. 'flank-left' puts them in the empty wall
+        # beside the speaker instead of a subtitle band under them.
+        "captionPos": seg.get("captionPos", "bottom"),
         "statusBar": seg.get("statusBar", ""),
         "nameTags": [],
         "bossFrame": None,
@@ -267,17 +344,60 @@ def build_segment(seg):
             print(f"warn: {seg['id']}: cutaway {c['src']} runs to {c['toSec']}s "
                   f"past the segment end {dur:.1f}s -- the tail is discarded",
                   file=sys.stderr)
-        src_dur = probe_duration(c["src"])
+        # A still has no duration; it simply holds for its window.
+        is_image = c["src"].lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+        src_dur = window if is_image else probe_duration(c["src"])
+        src_w, src_h = probe_dimensions(c["src"])
+        # AUTO-CONTAIN. <OffthreadVideo> in an AbsoluteFill has no objectFit,
+        # so a 1920x1080 or 960x540 source is STRETCHED to 8:5 -- a wrong
+        # picture, not a styling nicety. Anything that is not exactly the
+        # delivery frame is therefore centred on the page background at its
+        # native aspect, the same treatment the hook gives archival footage.
+        # Deciding this from the probed dimensions rather than from a flag in
+        # the plan means it cannot be forgotten for one clip out of twenty.
+        contain = c.get("contain")
+        if contain is None:
+            # Compare ASPECT, not exact pixels. A 3072x1920 screencast is the
+            # same 8:5 as the delivery frame and simply larger, so it fills
+            # edge to edge; insetting it into a card would be wrong and was
+            # the first version of this rule. Only a source whose SHAPE
+            # differs -- a 16:9 recording, a 4:3 archive clip, a screenshot --
+            # gets the centred treatment, because that is the case where
+            # filling the frame would stretch or crop real content.
+            delivery_aspect = VIDEO_WIDTH / VIDEO_HEIGHT
+            contain = abs((src_w / src_h) - delivery_aspect) > 0.01
         entry = {
             "src": c["src"],
             "fromFrame": frames(c["fromSec"]),
             "durationInFrames": frames(window),
             "srcDurationInFrames": frames(src_dur),
+            "isImage": is_image,
+            "contain": bool(contain),
+            "srcWidth": src_w,
+            "srcHeight": src_h,
+            # How the shot ARRIVES. Scale is one effect among several and was
+            # being used for all of them; these are the alternatives, so a cut
+            # can be given the entrance its content deserves instead of
+            # everything pushing in.
+            "enter": c.get("enter", "fade"),
+            # Era grade, archive footage only. A modern screenshot given grain
+            # and a vignette would be dressed up as something it is not.
+            "grade": {
+                "vignette": float(c.get("vignette", 0.0)),
+                "grain": float(c.get("grain", 0.0)),
+                "contrast": float(c.get("contrast", 1.0)),
+                "saturate": float(c.get("saturate", 1.0)),
+            },
+            # Slow drift for archival stills and clips, as the hook does it.
+            # Deliberately separate from `focus`: this moves the CARD's content
+            # a percent or two, it does not crop a modern screencast.
+            "drift": c.get("drift", "none"),
             "hold": bool(c.get("hold", False)),
             "holdOnly": bool(c.get("holdOnly", False)),
             "muted": True,
+            "focus": build_focus(seg["id"], c["src"], c["focus"]) if c.get("focus") else None,
         }
-        if not entry["hold"] and window > src_dur + 0.5:
+        if not is_image and not entry["hold"] and window > src_dur + 0.5:
             print(f"warn: {seg['id']}: {c['src']} window {window:.1f}s exceeds "
                   f"source {src_dur:.1f}s with hold=False -- will freeze on last frame "
                   f"by default OffthreadVideo behaviour once it ends", file=sys.stderr)
@@ -324,7 +444,12 @@ def build_segment(seg):
         out["punchTexts"].append({
             "fromFrame": frames(pt["fromSec"]),
             "durationInFrames": frames(pt.get("holdSec", 2.2)),
-            "words": pt["words"],
+            # A plan may write the line as a plain string; the component wants
+            # words. check_not_early() already accepts either, so normalising
+            # here keeps the two from disagreeing -- passing a string straight
+            # through rendered fine for 300 frames and then died with
+            # "words.map is not a function" deep in the timeline.
+            "words": pt["words"] if isinstance(pt["words"], list) else pt["words"].split(),
             "color": pt.get("color", "text"),
             "size": pt.get("size"),  # None -> TYPE.punch.size
         })
@@ -354,6 +479,83 @@ def build_segment(seg):
             "name": nt["name"],
             "fromFrame": frames(nt["fromSec"]),
             "durationInFrames": frames(nt["durationSec"]),
+        })
+    # Rects are fractions of the DELIVERY FRAME, not of the source: a
+    # spotlight sits on top of whatever is showing, which may be a focus crop
+    # that has already moved. Expressing it in frame space means the plan says
+    # "this part of the picture", which is what the editor actually means.
+    for sp in seg.get("spotlights", []):
+        window = sp["toSec"] - sp["fromSec"]
+        if window <= 0:
+            sys.exit(f"Error: {seg['id']}: spotlight window <= 0 ({sp})")
+        out["spotlights"].append({
+            "fromFrame": frames(sp["fromSec"]),
+            "durationInFrames": frames(window),
+            "x": float(sp["x"]), "y": float(sp["y"]),
+            "w": float(sp["w"]), "h": float(sp["h"]),
+            "dim": float(sp.get("dim", 0.72)),
+        })
+    for co in seg.get("callouts", []):
+        window = co["toSec"] - co["fromSec"]
+        if window <= 0:
+            sys.exit(f"Error: {seg['id']}: callout window <= 0 ({co})")
+        if co.get("label"):
+            check_not_early(seg["id"], "callout", co["label"], co["fromSec"], timeline)
+        out["callouts"].append({
+            "fromFrame": frames(co["fromSec"]),
+            "durationInFrames": frames(window),
+            "x": float(co["x"]), "y": float(co["y"]),
+            "w": float(co["w"]), "h": float(co["h"]),
+            "label": co.get("label", ""),
+            "color": co.get("color", "accent"),
+            "labelSide": co.get("labelSide", "below"),
+        })
+    for bl in seg.get("buildLists", []):
+        window = bl["toSec"] - bl["fromSec"]
+        if window <= 0:
+            sys.exit(f"Error: {seg['id']}: buildList window <= 0 ({bl})")
+        out["buildLists"].append({
+            "fromFrame": frames(bl["fromSec"]),
+            "durationInFrames": frames(window),
+            "items": bl["items"],
+            "title": bl.get("title", ""),
+            "color": bl.get("color", "text"),
+            "strike": bool(bl.get("strike", False)),
+        })
+    for tc in seg.get("twoColumns", []):
+        window = tc["toSec"] - tc["fromSec"]
+        if window <= 0:
+            sys.exit(f"Error: {seg['id']}: twoColumn window <= 0 ({tc})")
+        out["twoColumns"].append({
+            "fromFrame": frames(tc["fromSec"]),
+            "durationInFrames": frames(window),
+            "leftTitle": tc["leftTitle"],
+            "rightTitle": tc["rightTitle"],
+            "left": tc["left"],
+            "right": tc["right"],
+            "leftColor": tc.get("leftColor", "accent"),
+            "rightColor": tc.get("rightColor", "textMuted"),
+        })
+    for pu in seg.get("punches", []):
+        window = pu["toSec"] - pu["fromSec"]
+        if window <= 0:
+            sys.exit(f"Error: {seg['id']}: punch window <= 0 ({pu})")
+        to_scale = float(pu.get("to", 1.15))
+        # The talking head is captured at exactly the delivery frame, so a
+        # punch here is a TRUE upscale, unlike a crop out of an oversized
+        # screencast. A camera image of a face has no monospace glyphs to
+        # protect, but the softening is real, so the ceiling is tight.
+        if to_scale > 1.25 or float(pu.get("from", 1.0)) > 1.25:
+            sys.exit(
+                f"Error: {seg['id']}: punch scale {to_scale} exceeds 1.25. The "
+                f"take is already 2048x1280, so this is a true upscale."
+            )
+        out["punches"].append({
+            "fromFrame": frames(pu["fromSec"]),
+            "durationInFrames": frames(window),
+            "from": float(pu.get("from", 1.0)),
+            "to": to_scale,
+            "originY": float(pu.get("originY", 0.4)),
         })
     bf = seg.get("bossFrame")
     if bf:
@@ -418,6 +620,12 @@ def report_coverage(built):
             mark(covered, seg["bootTerminal"]["fromFrame"], seg["bootTerminal"]["durationInFrames"])
         if seg["bossFrame"]:
             mark(covered, seg["bossFrame"]["fromFrame"], seg["bossFrame"]["durationInFrames"])
+        for layer in ("callouts", "buildLists", "twoColumns"):
+            for item in seg[layer]:
+                mark(covered, item["fromFrame"], item["durationInFrames"])
+        # A spotlight is NOT coverage: it dims part of the picture rather than
+        # adding anything to read, so a stretch carrying only a spotlight is
+        # still bare.
 
         run = 0
         for f in range(dur + 1):
@@ -450,8 +658,16 @@ def check_no_repeated_gifs(built):
         sys.exit("Error: a gif may only be used once -- source a new one.")
 
 
-def build_manifest(segments, end_card, progress_unit=None):
-    """Build + validate + write the manifest. Call this from your plan file."""
+def build_manifest(segments, end_card, progress_unit=None, beds=()):
+    """Build + validate + write the manifest. Call this from your plan file.
+
+    `beds` are music cues on the VIDEO's absolute timeline, not inside any
+    segment. That distinction is load-bearing: a bed placed in a segment is
+    clipped by that segment's <Series.Sequence>, so a 40s track under a 28s
+    beat is silently truncated -- the same trap CLAUDE.md records for a hook
+    beat's own sfx. Each bed carries its own duck level so a montage can run
+    the music loud and a tour can sit it under speech.
+    """
     built = [build_segment(s) for s in segments]
     check_no_repeated_gifs(built)
     total_frames = sum(s["durationInFrames"] for s in built)
@@ -468,6 +684,18 @@ def build_manifest(segments, end_card, progress_unit=None):
         "progressUnit": progress_unit,
         "totalDurationInFrames": total_frames,
         "segments": built,
+        "beds": [
+            {
+                "file": b["file"],
+                "fromFrame": frames(b["atSec"]),
+                "durationInFrames": frames(b["toSec"] - b["atSec"]),
+                "startFromFrame": frames(b.get("startFromSec", 0.0)),
+                "gain": float(b.get("gain", 0.0)),
+                "fadeInFrames": frames(b.get("fadeInSec", 0.0)),
+                "fadeOutFrames": frames(b.get("fadeOutSec", 0.0)),
+            }
+            for b in beds
+        ],
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(manifest, indent=2) + "\n")

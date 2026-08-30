@@ -121,10 +121,16 @@ def main():
     cursor_frames = round(hook_sec * fps)
 
     for seg in manifest["segments"]:
-        srt = sidecar(seg["file"])
+        # A segment may have no narration file at all -- a picture-only montage
+        # such as the showcase, whose length comes from the plan rather than
+        # from a take. It contributes no cues but STILL advances the cursor,
+        # because it occupies real time in the delivered video. Exactly the
+        # rule hook_cues() already applies to a sourceless title-card beat; the
+        # body side simply had never seen one before.
+        srt = sidecar(seg["file"]) if seg.get("file") else None
         if srt:
             all_cues.extend(place(read_srt(srt), offset_sec=cursor_frames / fps))
-        else:
+        elif seg.get("file"):
             print(f"warn: no .srt for {seg['file']}", file=sys.stderr)
         cursor_frames += seg["durationInFrames"]
 

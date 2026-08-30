@@ -28,3 +28,4 @@ Config.setConcurrency(6);
 // CLI for that run instead: --crf=18.
 
 Config.setPublicDir('..');
+Config.setPublicLicenseKey('free-license');

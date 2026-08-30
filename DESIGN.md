@@ -318,7 +318,8 @@ and vanishes on a phone.
 Every piece of on-screen text carries **one** of these, always:
 
 - a **scrim** — a gradient from `scrim` at the frame edge to transparent, sized to
-  the text band: 28% height bottom (captions), 32% top (stamps), 42% top (terminal); or
+  the text band: 28% height bottom (captions), 32% top (stamps), 42% top (terminal),
+  46% width from either side (flanking text, 10.4); or
 - a **heavy text shadow** — `0 4px 20px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.8)`.
 
 This is section 6's shadow philosophy doing a second job: on dark *and* over
@@ -336,6 +337,7 @@ The frame is divided so layers cannot collide. Values in px from the named edge.
 | Top-left | 80, 80 | terminal list |
 | Upper-right | 22% top, 80% left | emoji burst |
 | **Centre** | — | **the speaker. Reserved. See 10.5** |
+| Flank left / right | 80 from side, max-width 620 | text beside a speaker (hook only) |
 | Lower third | 150 from bottom | punch lines |
 | Bottom band | 96 from bottom, max-width 1240 | captions |
 | Bottom-left | 80, 48 | name tag |
@@ -345,6 +347,11 @@ The frame is divided so layers cannot collide. Values in px from the named edge.
 
 Caption max-width is **1240 of 2048, not 1600** — a full-width line collided with
 the corner inset.
+
+The **flank** zones are the only per-take numbers in this table. 620px each side
+clears a subject occupying the middle quarter of the frame; measure where yours
+actually sits and re-tune both the column width and the scrim, rather than
+assuming. They exist only so the hook can obey 10.5 — see there.
 
 ### 10.5 The centre rule
 
@@ -356,6 +363,11 @@ The one exception is a beat with **no speaker** — a title card, a chart, a pur
 motion-graphics hook. There the centre is the only sensible place for a title, and
 `plans/hook.md` records the suspension explicitly.
 
+When a speaker *is* on screen and the beat still needs large type, the answer is
+to **flank** them (10.4), not to shrink the type or fade it back. Words in a
+column beside a face read at full size and never cross it; words at 40% opacity
+over a face are simply unreadable text on top of a person.
+
 ### 10.6 Motion
 
 Frame counts at 30 fps. Read `fps` from `useVideoConfig()`; never hardcode 30.
@@ -363,16 +375,25 @@ Frame counts at 30 fps. Read `fps` from `useVideoConfig()`; never hardcode 30.
 | event | frames |
 |---|---|
 | Word stagger (captions, punch) | 3 |
-| Line stagger (terminal) | 8 |
+| Line stagger (terminal, build list) | 8 |
 | Fade in | 8 |
 | Fade out | 10 |
 | Overlay entrance / exit | 6 |
-| Stamp exit | 25 → 35 |
+| Stamp exit ramp | 10 |
+| Minimum text lifetime | **60** (2 s — see 10.8) |
 | Minimum shot | **45** (1.5 s) |
 | Beat after a punchline | 10 |
 
 Every `interpolate` is **clamped** at both ends. An unclamped one drifts the
 element off frame in exactly the frames nobody previews.
+
+**An exit ramp is anchored to the END of the window the layer is given, never to
+a fixed frame number.** A ramp written as "fade out over frames 25→35" is a
+silent bet that every caller grants at least 35 frames; the stamp layer lost that
+bet against a 30-frame sequence and was hard-cut halfway through its own fade, in
+both compositions, for the life of a video. The ramp is a *length*; the component
+derives its position from its `durationInFrames` prop. Two files disagreeing about
+how long a layer lives is the bug, not the number.
 
 Section 4's pill-and-circle geometry survives as the still-frame vocabulary
 (insets, tags, bars); it is not animated as a button press, because nothing here
@@ -386,8 +407,29 @@ is pressed.
 - **The footage is the album art.** Section 1's "content-first darkness" maps
   exactly: screencasts, code and diagrams supply the colour; the UI around them
   stays achromatic so they can be read.
-- **Never tint a source.** Every asset is already 2048×1280; scaling or
-  colour-grading a screencast softens monospace glyphs.
+- **Never scale or tint one of *our* sources.** A screencast, a code clip or a
+  talking-head take is authored at the delivery frame; rescaling it softens
+  monospace glyphs and grading it changes what the viewer is being shown. This
+  is the rule; the two paragraphs below are its only carve-outs, and both exist
+  because the premise "every asset is already 2048×1280" is not always true.
+
+**Capture oversized so a move costs nothing.** Record screencasts at **3072×1920**
+— exactly 1.5× the delivery frame, same 8:5 ratio. A 2048×1280 crop out of that is
+a 1:1 pixel window, so a focus pan or punch-in up to **1.5×** resamples nothing and
+this rule is *honoured* rather than suspended. The build enforces the ceiling and
+warns when a source is too small to sustain the move. A take captured at native
+2048×1280 has no such headroom: punches there are true upscales, so cap them at
+**1.2×**, ration them to emphasis lines, and get your rhythm from cutaways instead.
+
+**Third-party archival footage is the exception, and it is framed, not stretched.**
+A 320×240 VHS capture never was 2048×1280 and cannot be; filling the frame with it
+distorts the picture, which is a *wrong image*, not a styling choice. So archival
+footage sits **inset on the page background at its native aspect** — one treatment
+for every era, nothing cropped away — and it is the one source that may be graded
+(vignette, grain, contrast, saturation), per beat, because there the grade carries
+the era rather than hiding a defect. The rule above protects our own screencasts'
+sharpness; a VHS capture of a CRT has no sharpness to protect. A body screencast
+must never use this path.
 
 ### 10.9 Code highlighting
 
@@ -433,7 +475,7 @@ document — **not generated from it**.
 
 | file | owns |
 |---|---|
-| `.remotion/src/design.ts` | colour roles, the 10.2 type scale, spacing, radii, elevation, the 10.4 zones, the 10.6 motion counts |
+| `.remotion/src/design.ts` | colour roles, the 10.2 type scale, spacing, radii, elevation, the 10.4 zones, the 10.6 motion counts, the 10.7 archive card and grade |
 | `.manim/scenes/design.py` | the same roles for Manim, the `GAP_*` spacing scale in scene units, layout regions, the code-highlighting theme |
 
 Rules:
