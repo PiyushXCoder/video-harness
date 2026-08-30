@@ -11,10 +11,14 @@ fresh checkout is a working harness with no content in it.
 Delivery is **2048×1280 (8:5) at 30 fps** — the screen recorder's native ratio,
 deliberately not 16:9, so screencasts and code are never rescaled.
 
-**See it in action:** [this video](https://youtu.be/4oK_dbCLlCE) was made with the
-harness end to end — planned, cut, animated, scored and subtitled by the skills
-below. It is the video the harness was built on, so most of the rules here exist
-because something in it went wrong first.
+## Example video
+
+[![The Third Way — an example video made end to end with this harness (click to watch on YouTube)](docs/example-video.jpg)](https://youtu.be/4oK_dbCLlCE)
+
+*[The Third Way](https://youtu.be/4oK_dbCLlCE)* — planned, cut, animated, scored
+and subtitled by the skills below, with nothing assembled by hand. It is the
+episode the harness was built on, so most of the rules here exist because
+something in it went wrong first.
 
 ---
 

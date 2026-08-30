@@ -30,8 +30,8 @@ __pycache__/
 # the engines are text, the content is not. Subtitles are here too -- an
 # .srt is generated from a take by whisper, so it belongs to the episode
 # exactly as much as the take does.
-# If you ever genuinely need one committed (a diagram in docs/, say), it is
-# a deliberate act: `git add -f <path>`.
+# Documentation images are the one carve-out, negated just below. Anything
+# else you genuinely need committed is a deliberate act: `git add -f <path>`.
 *.mp4
 *.mkv
 *.mov
@@ -50,6 +50,16 @@ __pycache__/
 *.jpg
 *.jpeg
 *.webp
+
+# ...except documentation images, which ARE part of the template: a README
+# screenshot or a diagram in docs/ explains the harness rather than belonging
+# to one episode. Narrow on purpose -- docs/ only, so a stray render or a
+# screencast still frame elsewhere is caught. Keep these small; they are as
+# permanent as any other committed binary.
+!docs/*.png
+!docs/*.jpg
+!docs/*.jpeg
+!docs/*.webp
 
 # --- Media: every asset directory holds one video's footage or output ---
 raw/*
