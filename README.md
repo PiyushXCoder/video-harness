@@ -11,6 +11,11 @@ fresh checkout is a working harness with no content in it.
 Delivery is **2048×1280 (8:5) at 30 fps** — the screen recorder's native ratio,
 deliberately not 16:9, so screencasts and code are never rescaled.
 
+**See it in action:** [this video](https://youtu.be/4oK_dbCLlCE) was made with the
+harness end to end — planned, cut, animated, scored and subtitled by the skills
+below. It is the video the harness was built on, so most of the rules here exist
+because something in it went wrong first.
+
 ---
 
 ## The pipeline
@@ -189,7 +194,7 @@ VRAM is the binding constraint on render concurrency.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). Copyright © 2026 Piyush Raj Mishra
+MIT — see [LICENSE](LICENSE). Copyright © 2026 Piyush Raj
 <piyushxcoder@gmail.com>.
 
 Note that the licence covers **this harness**, not the media a video is made
